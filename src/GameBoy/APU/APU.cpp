@@ -4,10 +4,10 @@
 
 APU::APU(GameBoy &gb) : _gb(gb)
 {
-	// std::cout << "new APU" << std::endl;
+	std::cout << "new APU" << std::endl;
 }
 
 APU::~APU()
 {
-	// std::cout << "APU deleted" << std::endl;
+	std::cout << "APU deleted" << std::endl;
 }

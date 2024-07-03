@@ -4,7 +4,6 @@ project(gbmu VERSION 1.0 LANGUAGES CXX)
 
 set(SOURCES
 	src/main.cpp
-	src/GBMUMenu/GBMUMenu.cpp
 	src/GameBoy/GameBoy.cpp
 	src/GameBoy/MMU/MMU.cpp
 	src/GameBoy/CPU/CPU.cpp

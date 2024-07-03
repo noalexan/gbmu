@@ -9,7 +9,7 @@
 class GameBoy
 {
 public:
-	GameBoy(char const *path_to_rom, char const *path_to_bios);
+	GameBoy(const std::vector<u8> &bios, const std::vector<u8> &rom);
 	~GameBoy();
 
 	void run();
@@ -25,10 +25,8 @@ private:
 	PPU ppu;
 	APU apu;
 
-	std::vector<u8> rom;
-	std::vector<u8> bios;
-
-	std::vector<u8> loadFile(const char *path);
+	std::vector<u8> _bios;
+	std::vector<u8> _rom;
 
 	bool _running;
 };

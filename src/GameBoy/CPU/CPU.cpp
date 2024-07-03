@@ -6,13 +6,13 @@
 
 CPU::CPU(GameBoy &gb) : _gb(gb), dots(0)
 {
-	// std::cout << "new CPU" << std::endl;
+	std::cout << "new CPU" << std::endl;
 	_pc = 0x0000;
 }
 
 CPU::~CPU()
 {
-	// std::cout << "CPU delete" << std::endl;
+	std::cout << "CPU deleted" << std::endl;
 }
 
 void CPU::set_flags(u8 flags)
@@ -39,8 +39,9 @@ void CPU::set_r16(u16 &r16, u16 value)
 
 void CPU::push(u16 value)
 {
-	access(--_sp) = value >> 8;
-	access(--_sp) = value;
+	_sp--;
+	access(_sp--) = value >> 8;
+	access(_sp) = value;
 	dots += 4; // because Stack Pointer can't pre-decrement
 }
 
@@ -576,7 +577,7 @@ void CPU::tick()
 		default:
 			std::stringstream os;
 
-			os << "CPU: Unknown 0xCB-prefixed instruction: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << std::flush;
+			os << "CPU: Unknown 0xCB-prefixed instruction: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << std::endl;
 			throw std::runtime_error(os.str().c_str());
 		}
 		break;
@@ -585,7 +586,7 @@ void CPU::tick()
 	default:
 		std::stringstream os;
 
-		os << "CPU: Unknown instruction: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << std::flush;
+		os << "CPU: Unknown instruction: 0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << std::endl;
 		throw std::runtime_error(os.str().c_str());
 	}
 

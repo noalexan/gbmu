@@ -5,12 +5,12 @@
 
 MMU::MMU(GameBoy &gb) : _gb(gb), is_bios_disabled(0x00)
 {
-	// std::cout << "new MMU" << std::endl;
+	std::cout << "new MMU" << std::endl;
 }
 
 MMU::~MMU()
 {
-	// std::cout << "MMU deleted" << std::endl;
+	std::cout << "MMU deleted" << std::endl;
 }
 
 u8 &MMU::access(u16 address)
@@ -18,10 +18,10 @@ u8 &MMU::access(u16 address)
 	// std::cout << "MMU: Accessing 0x" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(address) << std::endl;
 
 	if (0x0000 <= address && address <= 0x00FF && !is_bios_disabled)
-		return _gb.bios[address];
+		return _gb._bios[address];
 
 	if (0x0000 <= address && address <= 0x3FFF)
-		return _gb.rom[address];
+		return _gb._rom[address];
 
 	if (0x8000 <= address && address <= 0x9FFF)
 		return _gb.ppu.vram[address - 0x8000];
