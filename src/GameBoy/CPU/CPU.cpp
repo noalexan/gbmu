@@ -6,13 +6,17 @@
 
 CPU::CPU(GameBoy &gb) : _gb(gb), dots(0)
 {
+#ifndef NDEBUG
 	std::cout << "new CPU" << std::endl;
+#endif
 	_pc = 0x0000;
 }
 
 CPU::~CPU()
 {
+#ifndef NDEBUG
 	std::cout << "CPU deleted" << std::endl;
+#endif
 }
 
 void CPU::set_flags(u8 flags)
@@ -347,7 +351,7 @@ void CPU::tick()
 		get_r8(byte >> 3) = get_r8(byte);
 		break;
 
-		// Block 2
+	// Block 2
 
 	// add a, r8
 	case 0x86:
@@ -566,6 +570,8 @@ void CPU::tick()
 				set_flags(FLAGS::ZERO);
 			else
 				unset_flags(FLAGS::ZERO);
+
+			break;
 
 		// bit b3, r8
 		case 0x7C:

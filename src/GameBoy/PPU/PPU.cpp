@@ -1,10 +1,13 @@
 #include <iostream>
+#include <iomanip>
 #include <GameBoy/GameBoy.hpp>
 #include <GameBoy/PPU/PPU.hpp>
 
 PPU::PPU(GameBoy &gb) : _gb(gb), dots(0), mode(MODE::OAM)
 {
+#ifndef NDEBUG
 	std::cout << "new PPU" << std::endl;
+#endif
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
@@ -32,8 +35,8 @@ PPU::PPU(GameBoy &gb) : _gb(gb), dots(0), mode(MODE::OAM)
 		exit(EXIT_FAILURE);
 	}
 
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
-	if (texture == nullptr)
+	map_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, GB_SCREEN_WIDTH, GB_SCREEN_HEIGHT);
+	if (map_texture == nullptr)
 	{
 		std::cerr << "Texture could not be created! SDL_Error: " << SDL_GetError() << std::endl;
 		SDL_DestroyRenderer(renderer);
@@ -41,15 +44,53 @@ PPU::PPU(GameBoy &gb) : _gb(gb), dots(0), mode(MODE::OAM)
 		SDL_Quit();
 		exit(EXIT_FAILURE);
 	}
+
+#ifndef NDEBUG
+
+	tiles_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
+	if (tiles_texture == nullptr)
+	{
+		std::cerr << "Texture could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+		SDL_DestroyTexture(map_texture);
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+		exit(EXIT_FAILURE);
+	}
+
+#endif
 }
 
 PPU::~PPU()
 {
+#ifndef NDEBUG
 	std::cout << "PPU deleted" << std::endl;
-	SDL_DestroyTexture(texture);
+
+	SDL_DestroyTexture(tiles_texture);
+#endif
+
+	SDL_DestroyTexture(map_texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
+}
+
+u32 PPU::get_color(u8 color_index)
+{
+	switch ((registers[0x07] >> (color_index * 2)) & 0b11)
+	{
+	case 0:
+		return 0xFFFFAAAA;
+
+	case 1:
+		return 0xFF181818;
+
+	case 2:
+		return 0xFFFE4A22;
+
+	default:
+		return 0xFF34621C;
+	}
 }
 
 void PPU::tick()
@@ -75,9 +116,54 @@ void PPU::tick()
 		{
 			if (registers[0x04] >= 153)
 			{
-				SDL_UpdateTexture(texture, nullptr, pixels, GB_SCREEN_WIDTH * sizeof(u32));
+
+				SDL_UpdateTexture(map_texture, nullptr, pixels, GB_SCREEN_WIDTH * sizeof(u32));
 				SDL_RenderClear(renderer);
-				SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+
+#ifndef NDEBUG
+				for (int i = 0; i < 16; i++)
+				{
+					for (int j = 0; j < 16; j++)
+					{
+						// u8 *tile = &vram[(i * 16 + j) * 16];
+						u8 *tile = (registers[0x00] & (1 << 4)) ? &vram[(i*16+j) * 16] : &vram[0x1000 + (s8)(i*16+j) * 16];
+
+						// u8 tile[16] = {
+						// 	0x3C, 0x7E,
+						// 	0x42, 0x42,
+						// 	0x42, 0x42,
+						// 	0x42, 0x42,
+						// 	0x7E, 0x5E,
+						// 	0x7E, 0x0A,
+						// 	0x7C, 0x56,
+						// 	0x38, 0x7C
+						// };
+
+						for (int y = 0; y < 8; y++)
+						{
+							for (int x = 0; x < 8; x++)
+							{
+								u8 a = tile[y * 2];
+								u8 b = tile[y * 2 + 1];
+
+								u8 color_index = (((b >> (7 - x)) & 1) << 1) | ((a >> (7 - x)) & 1);
+
+								// std::cout << "i: " << static_cast<int>(i) << ", j: " << static_cast<int>(j) << ", y: " << static_cast<int>(y) << ", x: " << static_cast<int>(x) << std::endl;
+
+								tiles_pixels[(i * 8 + y) * 128 + (j * 8 + x)] = get_color(color_index);
+							}
+						}
+					}
+				}
+
+				SDL_UpdateTexture(tiles_texture, nullptr, tiles_pixels, 128 * sizeof(u32));
+
+				SDL_RenderCopy(renderer, map_texture, nullptr, &map_rect);
+				SDL_RenderCopy(renderer, tiles_texture, nullptr, &tiles_rect);
+#else
+				SDL_RenderCopy(renderer, map_texture, nullptr, nullptr);
+#endif
+
 				SDL_RenderPresent(renderer);
 
 				mode = MODE::OAM;
@@ -113,19 +199,19 @@ void PPU::tick()
 				// BG & Window enable
 				if (registers[0x00] & 1)
 				{
-					// s8 tile_index = vram[tile_map_area + (((scy + y) % 256) / 8) * 32 + (((scx + x) % 256) / 8)];
-					// u8 *tile = &vram[tile_data_area + tile_index * 16];
+					u8 tile_index = vram[tile_map_area + (((scy + y) >> 3) % 32) * 32 + (((scx + x) >> 3) % 32)];
+					u8 *tile = (registers[0x00] & (1 << 4)) ? &vram[tile_index * 16] : &vram[0x1000 + (s8)tile_index * 16];
 
-					u8 tile[16] = {
-						0x3C, 0x7E,
-						0x42, 0x42,
-						0x42, 0x42,
-						0x42, 0x42,
-						0x7E, 0x5E,
-						0x7E, 0x0A,
-						0x7C, 0x56,
-						0x38, 0x7C
-					};
+					// u8 tile[16] = {
+					// 	0x3C, 0x7E,
+					// 	0x42, 0x42,
+					// 	0x42, 0x42,
+					// 	0x42, 0x42,
+					// 	0x7E, 0x5E,
+					// 	0x7E, 0x0A,
+					// 	0x7C, 0x56,
+					// 	0x38, 0x7C
+					// };
 
 					u8 tile_y = (scy + y) % 8;
 					u8 tile_x = (scx + x) % 8;
@@ -135,26 +221,7 @@ void PPU::tick()
 
 					u8 color_index = (((b >> (7 - tile_x)) & 1) << 1) | ((a >> (7 - tile_x)) & 1);
 
-					pixels[y * GB_SCREEN_WIDTH + x] = 0xFFFFFFFF - 0x33333333 * color_index;
-
-					// switch ((registers[0x07] >> (color_index * 2)) & 0b11)
-					// {
-					// case 0:
-					// 	pixels[y * GB_SCREEN_WIDTH + x] = 0xFFFFAAAA;
-					// 	break;
-
-					// case 1:
-					// 	pixels[y * GB_SCREEN_WIDTH + x] = 0xFF181818;
-					// 	break;
-
-					// case 2:
-					// 	pixels[y * GB_SCREEN_WIDTH + x] = 0xFFFE4A22;
-					// 	break;
-
-					// case 3:
-					// 	pixels[y * GB_SCREEN_WIDTH + x] = 0xFF34621C;
-					// 	break;
-					// }
+					pixels[y * GB_SCREEN_WIDTH + x] = get_color(color_index);
 				}
 			}
 

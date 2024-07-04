@@ -5,17 +5,23 @@
 
 MMU::MMU(GameBoy &gb) : _gb(gb), is_bios_disabled(0x00)
 {
+#ifndef NDEBUG
 	std::cout << "new MMU" << std::endl;
+#endif
 }
 
 MMU::~MMU()
 {
+#ifndef NDEBUG
 	std::cout << "MMU deleted" << std::endl;
+#endif
 }
 
 u8 &MMU::access(u16 address)
 {
-	// std::cout << "MMU: Accessing 0x" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(address) << std::endl;
+#ifndef NDEBUG
+	std::cout << "MMU: Accessing 0x" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(address) << std::endl;
+#endif
 
 	if (0x0000 <= address && address <= 0x00FF && !is_bios_disabled)
 		return _gb._bios[address];

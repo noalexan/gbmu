@@ -9,12 +9,16 @@ GameBoy::GameBoy(const std::vector<u8> &bios, const std::vector<u8> &rom) :
 	ppu(*this),
 	apu(*this)
 {
+#ifndef NDEBUG
 	std::cout << "new GameBoy" << std::endl;
+#endif
 }
 
 GameBoy::~GameBoy()
 {
+#ifndef NDEBUG
 	std::cout << "GameBoy deleted" << std::endl;
+#endif
 }
 
 void GameBoy::run()
