@@ -352,26 +352,24 @@ void CPU::tick()
 	// add a, r8
 	case 0x86:
 	{
-		u8 &r8 = get_r8(byte);
-
-		u16 add = _af.high;
-		add += r8;
-
 		unset_flags(FLAGS::SUBSTRACT);
 
-		if (add == 0x00)
-			set_flags(FLAGS::ZERO);
-		else
-			unset_flags(FLAGS::ZERO);
+		u8 &r8 = get_r8(byte);
 
-		if (add > 0xFF)
+		if (0xFF - _af.high < r8)
 			set_flags(FLAGS::CARRY);
 		else
 			unset_flags(FLAGS::CARRY);
 
+		_af.high += r8;
+
+		if (_af.high == 0x00)
+			set_flags(FLAGS::ZERO);
+		else
+			unset_flags(FLAGS::ZERO);
+
 		// todo: set half carry
 
-		_af.high += r8;
 		break;
 	}
 
