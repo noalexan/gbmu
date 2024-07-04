@@ -71,7 +71,7 @@ u8 &CPU::get_r8(u8 index)
 		return _hl.low;
 	case 6:
 		return access(_hl);
-	case 7:
+	default:
 		return _af.high;
 	}
 }
@@ -86,7 +86,7 @@ u16 &CPU::get_r16(u8 index)
 		return _de;
 	case 2:
 		return _hl;
-	case 3:
+	default:
 		return _sp;
 	}
 }
@@ -101,7 +101,7 @@ u16 &CPU::get_r16stk(u8 index)
 		return _de;
 	case 2:
 		return _hl;
-	case 3:
+	default:
 		return _af;
 	}
 }
@@ -116,7 +116,7 @@ u16 CPU::get_r16mem(u8 index)
 		return _de;
 	case 2:
 		return _hl++;
-	case 3:
+	default:
 		return _hl--;
 	}
 }
@@ -131,7 +131,7 @@ bool CPU::get_cond(u8 index)
 		return _af.low & FLAGS::ZERO;
 	case 2:
 		return !(_af.low & FLAGS::CARRY);
-	case 3:
+	default:
 		return _af.low & FLAGS::CARRY;
 	}
 }
@@ -141,9 +141,9 @@ u8 CPU::get_b3(u8 index)
 	return 1 << (index & 0b111);
 }
 
-u16 CPU::get_tgt3(u8 index)
-{
-}
+// u16 CPU::get_tgt3(u8 index)
+// {
+// }
 
 u8 CPU::get_imm8()
 {
@@ -336,37 +336,44 @@ void CPU::tick()
 	case 0x57:
 	case 0x67:
 	case 0x77:
+	case 0x78:
+	case 0x79:
+	case 0x7A:
 	case 0x7B:
 	case 0x7C:
+	case 0x7D:
+	case 0x7E:
+	case 0x7F:
 		get_r8(byte >> 3) = get_r8(byte);
 		break;
 
 		// Block 2
 
-		// add a, r8
-		{
-			u8 &r8 = get_r8(byte);
+	// add a, r8
+	case 0x86:
+	{
+		u8 &r8 = get_r8(byte);
 
-			u16 add = _af.high;
-			add += r8;
+		u16 add = _af.high;
+		add += r8;
 
-			unset_flags(FLAGS::SUBSTRACT);
+		unset_flags(FLAGS::SUBSTRACT);
 
-			if (add == 0x00)
-				set_flags(FLAGS::ZERO);
-			else
-				unset_flags(FLAGS::ZERO);
+		if (add == 0x00)
+			set_flags(FLAGS::ZERO);
+		else
+			unset_flags(FLAGS::ZERO);
 
-			if (add > 0xFF)
-				set_flags(FLAGS::CARRY);
-			else
-				unset_flags(FLAGS::CARRY);
+		if (add > 0xFF)
+			set_flags(FLAGS::CARRY);
+		else
+			unset_flags(FLAGS::CARRY);
 
-			// todo: set half carry
+		// todo: set half carry
 
-			_af.high += r8;
-			break;
-		}
+		_af.high += r8;
+		break;
+	}
 
 	// adc a, r8	1	0	0	0	1	Operand (r8)
 
@@ -416,17 +423,17 @@ void CPU::tick()
 	{
 		u8 &r8 = get_r8(byte);
 
-		s16 sub = _af.high;
-		sub -= r8;
+		s16 cp = _af.high;
+		cp -= r8;
 
 		set_flags(FLAGS::SUBSTRACT);
 
-		if (sub == 0x00)
+		if (cp == 0x00)
 			set_flags(FLAGS::ZERO);
 		else
 			unset_flags(FLAGS::ZERO);
 
-		if (sub < 0x00)
+		if (cp < 0x00)
 			set_flags(FLAGS::CARRY);
 		else
 			unset_flags(FLAGS::CARRY);
