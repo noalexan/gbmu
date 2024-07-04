@@ -13,6 +13,9 @@ public:
 	void tick();
 	int dots;
 
+	u8 interrupt_enable = 0x00;
+	u8 interrupt_flag   = 0x00;
+
 private:
 	GameBoy &_gb;
 
@@ -50,6 +53,8 @@ private:
 
 	void set_flags(u8 flags);
 	void unset_flags(u8 flags);
+
+	bool _ime = false;
 
 	Register _af;
 	Register _bc;

@@ -3,7 +3,7 @@
 #include <GameBoy/GameBoy.hpp>
 #include <GameBoy/MMU/MMU.hpp>
 
-MMU::MMU(GameBoy &gb) : _gb(gb), is_bios_disabled(0x00)
+MMU::MMU(GameBoy &gb) : _gb(gb)
 {
 #ifndef NDEBUG
 	std::cout << "new MMU" << std::endl;
@@ -32,6 +32,12 @@ u8 &MMU::access(u16 address)
 	if (0x8000 <= address && address <= 0x9FFF)
 		return _gb.ppu.vram[address - 0x8000];
 
+	if (0xC000 <= address && address <= 0xDFFF)
+		return wram[address - 0xC000];
+
+	if (address == 0xFF0F)
+		return _gb.cpu.interrupt_flag;
+
 	if (0xFF10 <= address && address <= 0xFF26)
 		return _gb.apu.registers[address - 0xFF10];
 
@@ -43,6 +49,9 @@ u8 &MMU::access(u16 address)
 
 	if (0xFF80 <= address && address <= 0xFFFE)
 		return hram[address - 0xFF80];
+
+	if (address == 0xFFFF)
+		return _gb.cpu.interrupt_enable;
 
 	throw std::runtime_error("MMU: Out of range");
 }

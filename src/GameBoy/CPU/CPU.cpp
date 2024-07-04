@@ -486,8 +486,14 @@ void CPU::tick()
 		break;
 
 	// reti	1	1	0	1	1	0	0	1
+
 	// jp cond, imm16	1	1	0	Condition (cond)	0	1	0
-	// jp imm16	1	1	0	0	0	0	1	1
+
+	// jp imm16
+	case 0xC3:
+		set_r16(_pc, get_imm16());
+		break;
+
 	// jp hl	1	1	1	0	1	0	0	1
 	// call cond, imm16	1	1	0	Condition (cond)	1	0	0
 
@@ -527,9 +533,9 @@ void CPU::tick()
 		access(get_imm16()) = _af.high;
 		break;
 
-		// ldh a, [c]
-		_af.high = access(0xFF00 + _bc.low);
-		break;
+	// // ldh a, [c]
+	// 	_af.high = access(0xFF00 + _bc.low);
+	// 	break;
 
 	// ldh a, [imm8]
 	case 0xF0:
@@ -544,8 +550,12 @@ void CPU::tick()
 	// ld hl, sp + imm8	1	1	1	1	1	0	0	0
 	// ld sp, hl	1	1	1	1	1	0	0	1
 
-	// di	1	1	1	1	0	0	1	1
-	// ei	1	1	1	1	1	0	1	1
+	// di
+	case 0xF3:
+		_ime = false;
+		break;
+
+	// ei
 
 	// 0xCB prefix
 	case 0xCB:
