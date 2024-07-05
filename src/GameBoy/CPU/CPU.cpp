@@ -297,6 +297,9 @@ void CPU::tick()
 
 	// rla
 	case 0x17:
+	{
+		bool has_carry = _af.low & FLAGS::CARRY;
+
 		if (_af.high & 0b10000000)
 			set_flags(FLAGS::CARRY);
 		else
@@ -304,8 +307,10 @@ void CPU::tick()
 
 		unset_flags(FLAGS::ZERO | FLAGS::SUBSTRACT | FLAGS::HALF_CARRY);
 
-		_af.high <<= 1;
+		_af.high = _af.high << 1 | has_carry;
+
 		break;
+	}
 
 	// rra	0	0	0	1	1	1	1	1
 	// daa	0	0	1	0	0	1	1	1
@@ -567,6 +572,9 @@ void CPU::tick()
 		{
 		// rl r8
 		case 0x11:
+		{
+			bool has_carry = _af.low & FLAGS::CARRY;
+
 			if (r8 & 0b10000000)
 				set_flags(FLAGS::CARRY);
 			else
@@ -574,7 +582,7 @@ void CPU::tick()
 
 			unset_flags(FLAGS::SUBSTRACT | FLAGS::HALF_CARRY);
 
-			r8 <<= 1;
+			r8 = r8 << 1 | has_carry;
 
 			if (r8 == 0x00)
 				set_flags(FLAGS::ZERO);
@@ -582,6 +590,7 @@ void CPU::tick()
 				unset_flags(FLAGS::ZERO);
 
 			break;
+		}
 
 		// bit b3, r8
 		case 0x7C:
