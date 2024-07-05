@@ -9,6 +9,7 @@ set(SOURCES
 	src/GameBoy/CPU/CPU.cpp
 	src/GameBoy/PPU/PPU.cpp
 	src/GameBoy/APU/APU.cpp
+	src/GameBoy/Serial/Serial.cpp
 )
 
 find_package(SDL2 REQUIRED)

@@ -126,7 +126,7 @@ void PPU::tick()
 					for (int j = 0; j < 16; j++)
 					{
 						// u8 *tile = &vram[(i * 16 + j) * 16];
-						u8 *tile = (registers[0x00] & (1 << 4)) ? &vram[(i*16+j) * 16] : &vram[0x1000 + (s8)(i*16+j) * 16];
+						u8 *tile = (registers[0x00] & (1 << 4)) ? &vram[(i * 16 + j) * 16] : &vram[0x1000 + (s8)(i * 16 + j) * 16];
 
 						// u8 tile[16] = {
 						// 	0x3C, 0x7E,

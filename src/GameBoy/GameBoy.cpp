@@ -7,7 +7,8 @@ GameBoy::GameBoy(const std::vector<u8> &bios, const std::vector<u8> &rom) :
 	mmu(*this),
 	cpu(*this),
 	ppu(*this),
-	apu(*this)
+	apu(*this),
+	serial(*this)
 {
 #ifndef NDEBUG
 	std::cout << "new GameBoy" << std::endl;

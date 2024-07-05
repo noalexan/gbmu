@@ -35,6 +35,9 @@ u8 &MMU::access(u16 address)
 	if (0xC000 <= address && address <= 0xDFFF)
 		return wram[address - 0xC000];
 
+	if (0xFF01 <= address && address <= 0xFF02)
+		return _gb.serial.registers[address - 0xFF01];
+
 	if (address == 0xFF0F)
 		return _gb.cpu.interrupt_flag;
 
