@@ -178,6 +178,7 @@ void CPU::tick()
 		break;
 
 	// ld r16, imm16
+	case 0x01:
 	case 0x11:
 	case 0x21:
 	case 0x31:
@@ -192,6 +193,7 @@ void CPU::tick()
 
 	// ld a, [r16mem]
 	case 0x1A:
+	case 0x2A:
 		_af.high = access(get_r16mem(byte >> 4));
 		break;
 
@@ -216,12 +218,11 @@ void CPU::tick()
 	}
 
 	// dec r16
-
-	// else if ((byte & 0b11001111) == 0b00001011)
-	// {
-	// 	u16 &r16 = get_r16(byte >> 4);
-	// 	set_r16(r16, r16 - 1);
-	// }
+	case 0x0B:
+	{
+		u16 &r16 = get_r16(byte >> 4);
+		set_r16(r16, r16 - 1);
+	}
 
 	// add hl, r16
 
@@ -285,6 +286,8 @@ void CPU::tick()
 	// ld r8, imm8
 	case 0x06:
 	case 0x16:
+	case 0x26:
+	case 0x36:
 	case 0x0E:
 	case 0x1E:
 	case 0x2E:
@@ -417,13 +420,25 @@ void CPU::tick()
 	case 0xAF:
 		_af.high ^= get_r8(byte);
 		unset_flags(FLAGS::SUBSTRACT | FLAGS::HALF_CARRY | FLAGS::CARRY);
+
 		if (_af.high == 0x00)
 			set_flags(FLAGS::ZERO);
 		else
 			unset_flags(FLAGS::ZERO);
+
 		break;
 
-	// or a, r8	1	0	1	1	0	Operand (r8)
+	// or a, r8
+	case 0xB1:
+		_af.high |= get_r8(byte);
+		unset_flags(FLAGS::SUBSTRACT | FLAGS::HALF_CARRY | FLAGS::CARRY);
+
+		if (_af.high == 0x00)
+			set_flags(FLAGS::ZERO);
+		else
+			unset_flags(FLAGS::ZERO);
+
+		break;
 
 	// cp a, r8
 	case 0xBE:
@@ -490,7 +505,11 @@ void CPU::tick()
 		set_r16(_pc, pop());
 		break;
 
-	// reti	1	1	0	1	1	0	0	1
+	// reti
+	case 0xD9:
+		set_r16(_pc, pop());
+		_ime = true;
+		break;
 
 	// jp cond, imm16	1	1	0	Condition (cond)	0	1	0
 
@@ -561,6 +580,9 @@ void CPU::tick()
 		break;
 
 	// ei
+	case 0xFB:
+		_ime = true;
+		break;
 
 	// 0xCB prefix
 	case 0xCB:

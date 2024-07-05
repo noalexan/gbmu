@@ -30,6 +30,7 @@ public:
 
 	u8 registers[0x0B];
 	u8 vram[0x2000];
+	u8 oam[0x80];
 
 private:
 	GameBoy &_gb;

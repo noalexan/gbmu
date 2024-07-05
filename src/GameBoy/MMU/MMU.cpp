@@ -29,20 +29,41 @@ u8 &MMU::access(u16 address)
 	if (0x0000 <= address && address <= 0x3FFF)
 		return _gb._rom[address];
 
+	if (0x4000 <= address && address <= 0x7FFF)
+		return _gb._rom[address];
+
 	if (0x8000 <= address && address <= 0x9FFF)
 		return _gb.ppu.vram[address - 0x8000];
+
+	if (0xA000 <= address && address <= 0xBFFF)
+		throw std::runtime_error("MMU: Out of range");
 
 	if (0xC000 <= address && address <= 0xDFFF)
 		return wram[address - 0xC000];
 
+	if (0xE000 <= address && address <= 0xFDFF)
+		throw std::runtime_error("MMU: Out of range");
+
+	if (0xFE00 <= address && address <= 0xFE9F)
+		return _gb.ppu.oam[address - 0xFE00];
+
+	if (address == 0xFF00)
+		throw std::runtime_error("MMU: Out of range");
+
 	if (0xFF01 <= address && address <= 0xFF02)
 		return _gb.serial.registers[address - 0xFF01];
+
+	if (0xFF04 <= address && address <= 0xFF07)
+		throw std::runtime_error("MMU: Out of range");
 
 	if (address == 0xFF0F)
 		return _gb.cpu.interrupt_flag;
 
 	if (0xFF10 <= address && address <= 0xFF26)
 		return _gb.apu.registers[address - 0xFF10];
+
+	if (0xFF30 <= address && address <= 0xFF3F)
+		throw std::runtime_error("MMU: Out of range");
 
 	if (0xFF40 <= address && address <= 0xFF4B)
 		return _gb.ppu.registers[address - 0xFF40];
@@ -56,5 +77,5 @@ u8 &MMU::access(u16 address)
 	if (address == 0xFFFF)
 		return _gb.cpu.interrupt_enable;
 
-	throw std::runtime_error("MMU: Out of range");
+	return (not_used = 0xFF);
 }
