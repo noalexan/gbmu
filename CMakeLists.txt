@@ -15,6 +15,7 @@ add_executable(emulator
 	src/GameBoy/MMU/MMU.cpp
 	src/GameBoy/PPU/PPU.cpp
 	src/GameBoy/APU/APU.cpp
+	src/GameBoy/Serial/Serial.cpp
 )
 
 target_link_libraries(emulator ${SDL2_LIBRARIES})

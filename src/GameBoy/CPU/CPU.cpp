@@ -273,10 +273,27 @@ void CPU::step()
 		break;
 	}
 
+	// ret cond
+
 	// ret
 	case 0xC9:
 		setr16(registers.pc, pop() | (pop() << 8));
 		break;
+
+	// reti
+
+	// jp cond, imm16
+
+	// jp imm16
+	case 0xc3: {
+		u16 address = imm16();
+		setr16(registers.pc, address);
+		break;
+	}
+
+	// jp hl
+
+	// call cond, imm16
 
 	// call imm16
 	case 0xcd: {
@@ -286,6 +303,8 @@ void CPU::step()
 		setr16(registers.pc, address);
 		break;
 	}
+
+	// rst tgt3
 
 	// pop r16stk
 	case 0xC1:
@@ -565,15 +584,21 @@ void CPU::step()
 		registers.a = access(imm16());
 		break;
 
-		// add sp, imm8
+	// add sp, imm8
 
-		// ld hl, sp + imm8
+	// ld hl, sp + imm8
 
-		// ld sp, hl
+	// ld sp, hl
 
-		// di
+	// di
+	case 0xF3:
+		interrupt_enabled = false;
+		break;
 
-		// ei
+	// ei
+	case 0xFB:
+		interrupt_enabled = true;
+		break;
 
 	default: {
 		std::stringstream ss;

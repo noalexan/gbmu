@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 
 GameBoy::GameBoy(const std::string &filename)
-    : cartridge(filename), apu(), ppu(*this), mmu(*this), cpu(*this)
+    : cartridge(filename), apu(), ppu(*this), mmu(*this), cpu(*this), serial(*this)
 {
 }
 

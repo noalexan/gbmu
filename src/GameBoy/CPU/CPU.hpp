@@ -8,7 +8,10 @@ class GameBoy;
 class CPU {
 private:
 	GameBoy &gameboy;
-	int      ticks = 0;
+	int      ticks             = 0;
+	bool     interrupt_enabled = false;
+	u8       interrupt_flags   = 0;
+	u8       interrupt_enable  = 0;
 
 	enum Flag { ZERO = 1 << 7, NEGATIVE = 1 << 6, HALF_CARRY = 1 << 5, CARRY = 1 << 4 };
 
@@ -132,4 +135,7 @@ public:
 	CPU(GameBoy &);
 	virtual ~CPU();
 	void step();
+
+	u8 &getInterruptFlags() { return interrupt_flags; }
+	u8 &getInterruptEnable() { return interrupt_enable; }
 };

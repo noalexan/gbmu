@@ -5,6 +5,7 @@
 #include "Cartridge/Cartridge.hpp"
 #include "MMU/MMU.hpp"
 #include "PPU/PPU.hpp"
+#include "Serial/Serial.hpp"
 #include <atomic>
 #include <string>
 #include <thread>
@@ -16,6 +17,7 @@ private:
 	Cartridge cartridge;
 	MMU       mmu;
 	CPU       cpu;
+	Serial    serial;
 
 	std::thread       event_thread;
 	std::atomic<bool> running{false};
@@ -33,4 +35,5 @@ public:
 	Cartridge &getCartridge() { return cartridge; }
 	MMU       &getMMU() { return mmu; }
 	CPU       &getCPU() { return cpu; }
+	Serial    &getSerial() { return serial; }
 };
