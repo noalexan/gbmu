@@ -14,7 +14,10 @@ private:
 	std::array<u8 *, 0x10000> ram;
 
 	u8 bios_disabled = 0;
-	u8 wram[0x2000]; // 8KB Work RAM (0xC000-0xDFFF)
+	u8 wram[0x2000];
+	u8 eram[0x2000];
+	u8 io_registers[0x80];
+	u8 unusable[0x60];
 	u8 hram[0x7F];
 
 	inline void register_address(u16 addr, u8 *ptr) { ram[addr] = ptr; }

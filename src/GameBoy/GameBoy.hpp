@@ -12,9 +12,9 @@
 
 class GameBoy {
 private:
+	Cartridge cartridge;
 	APU       apu;
 	PPU       ppu;
-	Cartridge cartridge;
 	MMU       mmu;
 	CPU       cpu;
 	Serial    serial;

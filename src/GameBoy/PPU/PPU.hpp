@@ -61,4 +61,5 @@ public:
 
 	u8 vram[PPU_VRAM_SIZE];
 	u8 registers[PPU_REGISTERS_SIZE];
+	u8 oam[0xa0];
 };

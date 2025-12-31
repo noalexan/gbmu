@@ -256,37 +256,34 @@ Cartridge::Cartridge(const std::string &filename) : rom_data(nullptr), rom_size(
 		throw std::runtime_error(strerror(errno));
 	}
 
-	rom_data = mapped;
 	rom_size = sb.st_size;
+	rom_data = new u8[rom_size];
+	memcpy(rom_data, mapped, rom_size);
+	munmap(mapped, rom_size);
 
 	close(fd);
-
-	/* Validate cartridge type - only ROM ONLY (0x00) is supported for now */
-	if (getCartridgeType() != 0x00) {
-		munmap(rom_data, rom_size);
-		rom_data = nullptr;
-		rom_size = 0;
-		throw std::runtime_error("Cartridge type not supported: " + getCartridgeTypeString());
-	}
 }
 
 Cartridge::~Cartridge()
 {
 	if (rom_data != nullptr) {
-		munmap(rom_data, rom_size);
+		delete[] rom_data;
 	}
 }
 
 std::string Cartridge::getTitle() const
 {
-	if (rom_size < 0x144)
+	if (rom_size < 0x144 || rom_data == nullptr)
 		return "";
-	char title[17];
-	memcpy(title, &rom_data[0x134], 16);
-	title[16] = '\0';
-	std::string result(title);
-	// Trim trailing spaces and null characters
-	result.erase(result.find_last_not_of(" \0") + 1);
+	std::string result;
+	for (int i = 0; i < 16; i++) {
+		u8 ch = rom_data[0x134 + i];
+		if (ch == 0)
+			break;
+		result += (char)ch;
+	}
+	while (!result.empty() && result.back() == ' ')
+		result.pop_back();
 	return result;
 }
 
