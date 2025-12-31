@@ -42,8 +42,12 @@ u8 &MMU::access(u16 address)
 	if (address < 0x100 && !bios_disabled)
 		return const_cast<u8 &>(dmg_bios[address]);
 
-	if (ram[address] == nullptr)
-		throw std::runtime_error("MMU access not implemented for this address range");
+	if (ram[address] == nullptr) {
+		std::stringstream ss;
+		ss << "MMU access not implemented for address: 0x" << std::hex << std::setw(4)
+		   << std::setfill('0') << address;
+		throw std::runtime_error(ss.str());
+	}
 
 	return *ram[address];
 }
