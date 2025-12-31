@@ -23,6 +23,8 @@ public:
 	u8          getLicenseCode() const;
 	u8          getHeaderChecksum() const;
 	u16         getGlobalChecksum() const;
-	const u8   *getRomData() const;
 	size_t      getRomDataSize() const;
+
+	u8       *getRomData();
+	const u8 *getRomData() const;
 };

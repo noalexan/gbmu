@@ -334,6 +334,8 @@ u16 Cartridge::getGlobalChecksum() const
 	return (rom_data[0x14E] << 8) | rom_data[0x14F];
 }
 
+u8 *Cartridge::getRomData() { return rom_data; }
+
 const u8 *Cartridge::getRomData() const { return rom_data; }
 
 size_t Cartridge::getRomDataSize() const { return rom_size; }

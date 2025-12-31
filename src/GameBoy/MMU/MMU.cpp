@@ -12,8 +12,8 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 	ram.fill(nullptr);
 
 	register_address(0xff50, &bios_disabled);
-	register_address_range(0x0000, 0x3fff, const_cast<u8 *>(gameboy.getCartridge().getRomData()));
-	register_address_range(0x4000, 0x7fff, const_cast<u8 *>(gameboy.getCartridge().getRomData()));
+	register_address_range(0x0000, 0x3fff, gameboy.getCartridge().getRomData());
+	register_address_range(0x4000, 0x7fff, gameboy.getCartridge().getRomData() + 0x4000);
 	register_address_range(0x8000, 0x9fff, gameboy.getPPU().vram);
 	register_address_range(0xa000, 0xbfff, eram);
 	register_address_range(0xc000, 0xdfff, wram);
