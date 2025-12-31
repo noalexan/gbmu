@@ -6,21 +6,37 @@ GameBoy::GameBoy(const std::string &filename)
 {
 }
 
-GameBoy::~GameBoy() { SDL_Quit(); }
+GameBoy::~GameBoy()
+{
+	running = false;
+	if (event_thread.joinable()) {
+		event_thread.join();
+	}
+	SDL_Quit();
+}
+
+void GameBoy::pollEvents()
+{
+	while (running) {
+		SDL_Event event;
+		if (SDL_PollEvent(&event)) {
+			if (event.type == SDL_QUIT) {
+				running = false;
+			}
+		}
+		SDL_Delay(1);
+	}
+}
 
 void GameBoy::run()
 {
-	bool      running       = true;
+	running                 = true;
 	const int FRAME_TIME_MS = 16;
+
+	event_thread = std::thread(&GameBoy::pollEvents, this);
 
 	while (running) {
 		u32 frame_start = SDL_GetTicks();
-
-		SDL_Event event;
-		if (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT)
-				running = false;
-		}
 
 		for (int i = 0; i < 70224; i++) {
 			cpu.step();
@@ -33,5 +49,9 @@ void GameBoy::run()
 		if (frame_time < FRAME_TIME_MS) {
 			SDL_Delay(FRAME_TIME_MS - frame_time);
 		}
+	}
+
+	if (event_thread.joinable()) {
+		event_thread.join();
 	}
 }

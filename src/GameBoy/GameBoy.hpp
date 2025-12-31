@@ -5,7 +5,9 @@
 #include "Cartridge/Cartridge.hpp"
 #include "MMU/MMU.hpp"
 #include "PPU/PPU.hpp"
+#include <atomic>
 #include <string>
+#include <thread>
 
 class GameBoy {
 private:
@@ -14,6 +16,11 @@ private:
 	Cartridge cartridge;
 	MMU       mmu;
 	CPU       cpu;
+
+	std::thread       event_thread;
+	std::atomic<bool> running{false};
+
+	void pollEvents();
 
 public:
 	GameBoy(const std::string &);
