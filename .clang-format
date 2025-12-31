@@ -1,0 +1,17 @@
+BasedOnStyle: LLVM
+
+ColumnLimit: 100
+IndentWidth: 4
+UseTab: ForIndentation
+TabWidth: 4
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveMacros: Consecutive
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+IndentPPDirectives: AfterHash
+PPIndentWidth: 1
+InsertNewlineAtEOF: true
