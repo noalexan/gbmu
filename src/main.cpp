@@ -4,7 +4,7 @@
 int main(int argc, char *argv[])
 {
 	try {
-		GameBoy gb((argc == 2) ? argv[1] : "../roms/Tetris.gb");
+		GameBoy gb((argc == 2) ? argv[1] : "../../gbmu-assets/roms/Tetris.gb");
 		gb.run();
 	} catch (const std::exception &e) {
 		std::cerr << "Error: " << e.what() << std::endl;
