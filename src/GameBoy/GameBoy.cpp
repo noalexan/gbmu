@@ -1,5 +1,7 @@
 #include "GameBoy.hpp"
 #include <SDL2/SDL.h>
+#include <chrono>
+#include <thread>
 
 GameBoy::GameBoy(const std::string &filename)
     : cartridge(filename), apu(), ppu(*this), mmu(*this), cpu(*this), serial(*this)
@@ -24,19 +26,18 @@ void GameBoy::pollEvents()
 				running = false;
 			}
 		}
-		SDL_Delay(1);
 	}
 }
 
 void GameBoy::run()
 {
-	running                 = true;
-	const int FRAME_TIME_MS = 16;
+	running               = true;
+	const auto FRAME_TIME = std::chrono::milliseconds(16);
 
 	event_thread = std::thread(&GameBoy::pollEvents, this);
 
 	while (running) {
-		u32 frame_start = SDL_GetTicks();
+		auto frame_start = std::chrono::high_resolution_clock::now();
 
 		for (int i = 0; i < 70224; i++) {
 			cpu.step();
@@ -45,9 +46,9 @@ void GameBoy::run()
 
 		ppu.render();
 
-		u32 frame_time = SDL_GetTicks() - frame_start;
-		if (frame_time < FRAME_TIME_MS) {
-			SDL_Delay(FRAME_TIME_MS - frame_time);
+		auto frame_elapsed = std::chrono::high_resolution_clock::now() - frame_start;
+		if (frame_elapsed < FRAME_TIME) {
+			std::this_thread::sleep_for(FRAME_TIME - frame_elapsed);
 		}
 	}
 
