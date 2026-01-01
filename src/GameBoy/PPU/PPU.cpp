@@ -2,7 +2,7 @@
 #include "../GameBoy.hpp"
 #include <string>
 
-static const u32 PALETTE_COLORS[4] = {0x94D346FF, 0x87C537FF, 0x346524FF, 0x234434FF};
+static const u32 PALETTE_COLORS[4] = {0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF};
 
 PPU::PPU(GameBoy &gb)
     : lcdc(registers[0]), stat(registers[1]), scy(registers[2]), scx(registers[3]),

@@ -52,6 +52,14 @@ void CPU::step()
 		registers.a = r16mem(opcode >> 4);
 		break;
 
+	// ld [imm16], sp
+	case 0x08: {
+		u16 address         = imm16();
+		access(address)     = registers.sp & 0x00FF;
+		access(address + 1) = (registers.sp & 0xFF00) >> 8;
+		break;
+	}
+
 	// inc r16
 	case 0x03:
 	case 0x13:
@@ -124,6 +132,14 @@ void CPU::step()
 		r8(opcode >> 3) = imm8();
 		break;
 
+	// rlca
+	case 0x07: {
+		bool carry  = (registers.a & 0x80) != 0;
+		registers.a = (registers.a << 1) | (carry ? 1 : 0);
+		registers.f = carry ? CARRY : 0;
+		break;
+	}
+
 	// rla
 	case 0x17: {
 		bool carry  = (registers.a & 0x80) != 0;
@@ -157,6 +173,8 @@ void CPU::step()
 			setr16(registers.pc, registers.pc + offset);
 		break;
 	}
+
+	// stop
 
 	// ld r8, r8
 	case 0x40:
@@ -435,6 +453,13 @@ void CPU::step()
 	}
 
 	// reti
+	case 0xD9: {
+		u8 low  = pop();
+		u8 high = pop();
+		setr16(registers.pc, low | (high << 8));
+		interrupt_enabled = true;
+		break;
+	}
 
 	// jp cond, imm16
 	case 0xc2:
@@ -484,6 +509,18 @@ void CPU::step()
 	}
 
 	// rst tgt3
+	case 0xC7:
+	case 0xD7:
+	case 0xE7:
+	case 0xF7:
+	case 0xCF:
+	case 0xDF:
+	case 0xEF:
+	case 0xFF:
+		push(registers.pc >> 8);
+		push(registers.pc);
+		setr16(registers.pc, opcode & 0b00111000);
+		break;
 
 	// pop r16stk
 	case 0xC1:
@@ -825,8 +862,19 @@ void CPU::step()
 	// add sp, imm8
 
 	// ld hl, sp + imm8
+	case 0xF8: {
+		s8  offset  = static_cast<s8>(imm8());
+		u16 result  = registers.sp + offset;
+		registers.f = ((registers.sp & 0x0F) + (offset & 0x0F) > 0x0F ? HALF_CARRY : 0) |
+		              (result > 0xFFFF ? CARRY : 0);
+		setr16(registers.hl, static_cast<u16>(result));
+		break;
+	}
 
 	// ld sp, hl
+	case 0xF9:
+		setr16(registers.sp, registers.hl);
+		break;
 
 	// di
 	case 0xF3:

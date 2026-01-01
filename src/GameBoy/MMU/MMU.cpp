@@ -20,7 +20,6 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 	register_address_range(0xe000, 0xfdff, wram);
 	register_address_range(0xfe00, 0xfe9f, gameboy.getPPU().oam);
 	register_address_range(0xfea0, 0xfeff, unusable);
-	register_address_range(0xff00, 0xff7f, io_registers);
 	register_address(0xff01, &gameboy.getSerial().getSerialData());
 	register_address(0xff02, &gameboy.getSerial().getSerialControl());
 	register_address_range(0xff10, 0xff26, gameboy.getAPU().registers);
@@ -39,8 +38,8 @@ u8 &MMU::access(u16 address)
 	          << std::setfill('0') << address << std::dec << "\033[0m" << std::endl;
 #endif
 
-	if (address < 0x100 && !bios_disabled)
-		return const_cast<u8 &>(dmg_bios[address]);
+	if (address < 0x100 && bios_disabled == 0)
+		return dmg_bios[address];
 
 	if (ram[address] == nullptr) {
 		std::stringstream ss;
