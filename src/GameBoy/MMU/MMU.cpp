@@ -17,6 +17,7 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 	register_address_range(0xe000, 0xfdff, wram);
 	register_address_range(0xfe00, 0xfe9f, gameboy.getPPU().oam);
 	// register_address_range(0xfea0, 0xfeff, unusable);
+	register_address(0xff00, &gameboy.getJoypad().getP1());
 	register_address(0xff01, &gameboy.getSerial().getSerialData());
 	register_address(0xff02, &gameboy.getSerial().getSerialControl());
 	register_address_range(0xff04, 0xff07, gameboy.getTimer().registers);

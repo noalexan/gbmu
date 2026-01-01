@@ -7,6 +7,7 @@
 #include "PPU/PPU.hpp"
 #include "Serial/Serial.hpp"
 #include "Timer/Timer.hpp"
+#include "Joypad/Joypad.hpp"
 #include <atomic>
 #include <string>
 #include <thread>
@@ -20,6 +21,7 @@ private:
 	CPU       cpu;
 	Serial    serial;
 	Timer     timer;
+	Joypad    joypad;
 
 	std::thread       event_thread;
 	std::atomic<bool> running{false};
@@ -39,4 +41,5 @@ public:
 	CPU       &getCPU() { return cpu; }
 	Serial    &getSerial() { return serial; }
 	Timer     &getTimer() { return timer; }
+	Joypad    &getJoypad() { return joypad; }
 };
