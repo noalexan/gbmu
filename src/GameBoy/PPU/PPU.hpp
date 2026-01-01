@@ -3,11 +3,9 @@
 #include <SDL2/SDL.h>
 #include <types.h>
 
-#define SCREEN_WIDTH       160
-#define SCREEN_HEIGHT      144
-#define WINDOW_SCALE       4
-#define PPU_VRAM_SIZE      0x2000
-#define PPU_REGISTERS_SIZE 0x0C
+#define SCREEN_WIDTH  160
+#define SCREEN_HEIGHT 144
+#define WINDOW_SCALE  4
 
 class GameBoy;
 
@@ -59,7 +57,7 @@ public:
 	SDL_Texture  *getTexture() const { return texture; }
 	u32          *getFramebuffer() { return framebuffer; }
 
-	u8 vram[PPU_VRAM_SIZE];
-	u8 registers[PPU_REGISTERS_SIZE];
+	u8 vram[0x2000];
+	u8 registers[0x0C];
 	u8 oam[0xa0];
 };

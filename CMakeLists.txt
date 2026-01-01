@@ -16,6 +16,7 @@ add_executable(emulator
 	src/GameBoy/PPU/PPU.cpp
 	src/GameBoy/APU/APU.cpp
 	src/GameBoy/Serial/Serial.cpp
+	src/GameBoy/Timer/Timer.cpp
 )
 
 target_link_libraries(emulator ${SDL2_LIBRARIES})

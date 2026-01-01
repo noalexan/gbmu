@@ -6,6 +6,7 @@
 #include "MMU/MMU.hpp"
 #include "PPU/PPU.hpp"
 #include "Serial/Serial.hpp"
+#include "Timer/Timer.hpp"
 #include <atomic>
 #include <string>
 #include <thread>
@@ -18,6 +19,7 @@ private:
 	MMU       mmu;
 	CPU       cpu;
 	Serial    serial;
+	Timer     timer;
 
 	std::thread       event_thread;
 	std::atomic<bool> running{false};
@@ -36,4 +38,5 @@ public:
 	MMU       &getMMU() { return mmu; }
 	CPU       &getCPU() { return cpu; }
 	Serial    &getSerial() { return serial; }
+	Timer     &getTimer() { return timer; }
 };
