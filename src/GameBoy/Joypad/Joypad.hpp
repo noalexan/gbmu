@@ -9,11 +9,11 @@ class Joypad {
 private:
 	GameBoy &gameboy;
 
-	u8 p1 = 0;
+	u8 input = 0;
 
 public:
 	Joypad(GameBoy &);
 	virtual ~Joypad();
 
-	u8 &getP1() { return p1; }
+	u8 &getInput() { return input; }
 };

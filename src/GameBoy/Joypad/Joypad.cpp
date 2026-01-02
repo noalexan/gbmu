@@ -4,4 +4,3 @@
 Joypad::Joypad(GameBoy &gb) : gameboy(gb) {}
 
 Joypad::~Joypad() {}
-

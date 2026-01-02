@@ -3,11 +3,11 @@
 #include "APU/APU.hpp"
 #include "CPU/CPU.hpp"
 #include "Cartridge/Cartridge.hpp"
+#include "Joypad/Joypad.hpp"
 #include "MMU/MMU.hpp"
 #include "PPU/PPU.hpp"
 #include "Serial/Serial.hpp"
 #include "Timer/Timer.hpp"
-#include "Joypad/Joypad.hpp"
 #include <atomic>
 #include <string>
 #include <thread>

@@ -1,6 +1,7 @@
 #include "CPU.hpp"
 #include "../GameBoy.hpp"
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -71,17 +72,24 @@ void CPU::step()
 	}
 
 	// dec r16
+	case 0x0B:
+	case 0x1B:
+	case 0x2B:
+	case 0x3B: {
+		u16 &reg = r16(opcode >> 4);
+		setr16(reg, reg - 1);
+		break;
+	}
 
 	// add hl, r16
 	case 0x09:
 	case 0x19:
 	case 0x29:
 	case 0x39: {
-		u16 value   = r16(opcode >> 4);
-		u32 result  = registers.hl + value;
-		registers.f = (registers.f & ZERO) |
-		              ((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF ? HALF_CARRY : 0) |
-		              (result > 0xFFFF ? CARRY : 0);
+		u16 value  = r16(opcode >> 4);
+		u32 result = registers.hl + value;
+		setHalfCarryFlag((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);
+		setCarryFlag(result > 0xFFFF);
 		setr16(registers.hl, static_cast<u16>(result));
 		break;
 	}
@@ -98,8 +106,9 @@ void CPU::step()
 		u8 &reg         = r8(opcode >> 3);
 		u8  old         = reg;
 		r8(opcode >> 3) = reg + 1; // reuse of `r8` to handle hl++
-		registers.f =
-		    (registers.f & CARRY) | (reg == 0 ? ZERO : 0) | ((old & 0xF) == 0xF ? HALF_CARRY : 0);
+		setZeroFlag(reg == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag((old & 0xF) == 0xF);
 		break;
 	}
 
@@ -115,8 +124,9 @@ void CPU::step()
 		u8 &reg         = r8(opcode >> 3);
 		u8  old         = reg;
 		r8(opcode >> 3) = reg - 1; // reuse of `r8` to handle hl--
-		registers.f     = (registers.f & CARRY) | NEGATIVE | (reg == 0 ? ZERO : 0) |
-		              ((old & 0xF) == 0 ? HALF_CARRY : 0);
+		setNegativeFlag(true);
+		setZeroFlag(reg == 0);
+		setHalfCarryFlag((old & 0xF) == 0);
 		break;
 	}
 
@@ -136,15 +146,23 @@ void CPU::step()
 	case 0x07: {
 		bool carry  = (registers.a & 0x80) != 0;
 		registers.a = (registers.a << 1) | (carry ? 1 : 0);
-		registers.f = carry ? CARRY : 0;
+		setZeroFlag(false);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(carry);
 		break;
 	}
+
+	// rrca
 
 	// rla
 	case 0x17: {
 		bool carry  = (registers.a & 0x80) != 0;
 		registers.a = (registers.a << 1) | (registers.f & CARRY ? 1 : 0);
-		registers.f = carry ? CARRY : 0;
+		setZeroFlag(false);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(carry);
 		break;
 	}
 
@@ -152,9 +170,37 @@ void CPU::step()
 	case 0x1F: {
 		bool carry  = (registers.a & 0x01) != 0;
 		registers.a = (registers.a >> 1) | (registers.f & CARRY ? 0x80 : 0);
-		registers.f = carry ? CARRY : 0;
+		setZeroFlag(false);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(carry);
 		break;
 	}
+
+	// daa
+	case 0x27: {
+		u8 correction = 0;
+		if (getHalfCarryFlag() || (!getNegativeFlag() && (registers.a & 0x0F) > 0x09))
+			correction |= 0x06;
+		if (getCarryFlag() || (!getNegativeFlag() && registers.a > 0x99)) {
+			correction |= 0x60;
+			setCarryFlag(true);
+		}
+		if (getNegativeFlag())
+			registers.a -= correction;
+		else
+			registers.a += correction;
+		setZeroFlag(registers.a == 0);
+		setHalfCarryFlag(false);
+		break;
+	}
+
+	// cpl
+	case 0x2F:
+		registers.a = ~registers.a;
+		setNegativeFlag(true);
+		setHalfCarryFlag(true);
+		break;
 
 	// jr imm8
 	case 0x18: {
@@ -175,6 +221,9 @@ void CPU::step()
 	}
 
 	// stop
+	case 0x10:
+		std::cerr << "STOP instr called" << std::endl;
+		break;
 
 	// ld r8, r8
 	case 0x40:
@@ -231,7 +280,6 @@ void CPU::step()
 	case 0x73:
 	case 0x74:
 	case 0x75:
-	case 0x76:
 	case 0x77:
 	case 0x78:
 	case 0x79:
@@ -244,6 +292,11 @@ void CPU::step()
 		r8(opcode >> 3) = r8(opcode);
 		break;
 
+	// halt
+	case 0x76:
+		std::cerr << "HALT instr called" << std::endl;
+		break;
+
 	// add a, r8
 	case 0x80:
 	case 0x81:
@@ -253,11 +306,12 @@ void CPU::step()
 	case 0x85:
 	case 0x86:
 	case 0x87: {
-		u8 value    = r8(opcode);
-		registers.f = ((registers.a & 0xF) + (value & 0xF) > 0xF ? HALF_CARRY : 0) |
-		              (registers.a + value > 0xFF ? CARRY : 0);
+		u8 value = r8(opcode);
+		setHalfCarryFlag((registers.a & 0xF) + (value & 0xF) > 0xF);
+		setCarryFlag(registers.a + value > 0xFF);
 		registers.a += value;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
 		break;
 	}
 
@@ -270,12 +324,13 @@ void CPU::step()
 	case 0x8D:
 	case 0x8E:
 	case 0x8F: {
-		u8 value    = r8(opcode);
-		u8 carry    = (registers.f & CARRY) ? 1 : 0;
-		registers.f = ((registers.a & 0xF) + (value & 0xF) + carry > 0xF ? HALF_CARRY : 0) |
-		              (registers.a + value + carry > 0xFF ? CARRY : 0);
+		u8 value = r8(opcode);
+		u8 carry = (registers.f & CARRY) ? 1 : 0;
+		setHalfCarryFlag((registers.a & 0xF) + (value & 0xF) + carry > 0xF);
+		setCarryFlag(registers.a + value + carry > 0xFF);
 		registers.a += value + carry;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
 		break;
 	}
 
@@ -288,11 +343,12 @@ void CPU::step()
 	case 0x95:
 	case 0x96:
 	case 0x97: {
-		u8 value    = r8(opcode);
-		registers.f = NEGATIVE | ((registers.a & 0xF) < (value & 0xF) ? HALF_CARRY : 0) |
-		              (registers.a < value ? CARRY : 0);
+		u8 value = r8(opcode);
+		setNegativeFlag(true);
+		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF));
+		setCarryFlag(registers.a < value);
 		registers.a -= value;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
 		break;
 	}
 
@@ -305,12 +361,13 @@ void CPU::step()
 	case 0x9D:
 	case 0x9E:
 	case 0x9F: {
-		u8 value    = r8(opcode);
-		u8 carry    = (registers.f & CARRY) ? 1 : 0;
-		registers.f = NEGATIVE | ((registers.a & 0xF) < (value & 0xF) + carry ? HALF_CARRY : 0) |
-		              (registers.a < value + carry ? CARRY : 0);
+		u8 value = r8(opcode);
+		u8 carry = (registers.f & CARRY) ? 1 : 0;
+		setNegativeFlag(true);
+		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF) + carry);
+		setCarryFlag(registers.a < value + carry);
 		registers.a -= value + carry;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
 		break;
 	}
 
@@ -324,7 +381,10 @@ void CPU::step()
 	case 0xA6:
 	case 0xA7:
 		registers.a &= r8(opcode);
-		registers.f = HALF_CARRY | (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag(true);
+		setCarryFlag(false);
 		break;
 
 	// xor a, r8
@@ -337,7 +397,10 @@ void CPU::step()
 	case 0xae:
 	case 0xaf:
 		registers.a ^= r8(opcode);
-		registers.f = (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(false);
 		break;
 
 	// cp a, r8
@@ -349,10 +412,11 @@ void CPU::step()
 	case 0xbd:
 	case 0xbe:
 	case 0xbf: {
-		u8 value    = r8(opcode);
-		registers.f = NEGATIVE | (registers.a - value == 0 ? ZERO : 0) |
-		              ((registers.a & 0xF) < (value & 0xF) ? HALF_CARRY : 0) |
-		              (registers.a < value ? CARRY : 0);
+		u8 value = r8(opcode);
+		setNegativeFlag(true);
+		setZeroFlag(registers.a - value == 0);
+		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF));
+		setCarryFlag(registers.a < value);
 		break;
 	}
 
@@ -366,66 +430,92 @@ void CPU::step()
 	case 0xb6:
 	case 0xb7:
 		registers.a |= r8(opcode);
-		registers.f = (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(false);
 		break;
 
 	// add a, imm8
 	case 0xc6: {
-		u8 value    = imm8();
-		registers.f = ((registers.a & 0xF) + (value & 0xF) > 0xF ? HALF_CARRY : 0) |
-		              (registers.a + value > 0xFF ? CARRY : 0);
+		u8 value = imm8();
+		setHalfCarryFlag((registers.a & 0xF) + (value & 0xF) > 0xF);
+		setCarryFlag(registers.a + value > 0xFF);
 		registers.a += value;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
 		break;
 	}
 
 	// adc a, imm8
 	case 0xce: {
-		u8 value    = imm8();
-		u8 carry    = (registers.f & CARRY) ? 1 : 0;
-		registers.f = ((registers.a & 0xF) + (value & 0xF) + carry > 0xF ? HALF_CARRY : 0) |
-		              (registers.a + value + carry > 0xFF ? CARRY : 0);
+		u8 value = imm8();
+		u8 carry = (registers.f & CARRY) ? 1 : 0;
+		setHalfCarryFlag((registers.a & 0xF) + (value & 0xF) + carry > 0xF);
+		setCarryFlag(registers.a + value + carry > 0xFF);
 		registers.a += value + carry;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
 		break;
 	}
 
 	// sub a, imm8
 	case 0xd6: {
-		u8 value    = imm8();
-		registers.f = NEGATIVE | ((registers.a & 0xF) < (value & 0xF) ? HALF_CARRY : 0) |
-		              (registers.a < value ? CARRY : 0);
+		u8 value = imm8();
+		setNegativeFlag(true);
+		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF));
+		setCarryFlag(registers.a < value);
 		registers.a -= value;
-		registers.f |= (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
 		break;
 	}
 
 	// sbc a, imm8
+	case 0xde: {
+		u8 value = imm8();
+		u8 carry = (registers.f & CARRY) ? 1 : 0;
+		setNegativeFlag(true);
+		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF) + carry);
+		setCarryFlag(registers.a < value + carry);
+		registers.a -= value + carry;
+		setZeroFlag(registers.a == 0);
+		break;
+	}
 
 	// and a, imm8
 	case 0xe6:
 		registers.a &= imm8();
-		registers.f = HALF_CARRY | (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag(true);
+		setCarryFlag(false);
 		break;
 
 	// xor a, imm8
 	case 0xee:
 		registers.a ^= imm8();
-		registers.f = (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(false);
 		break;
 
 	// or a, imm8
 	case 0xf6:
 		registers.a |= imm8();
-		registers.f = (registers.a == 0 ? ZERO : 0);
+		setZeroFlag(registers.a == 0);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(false);
 		break;
 
 	// cp a, imm8
 	case 0xfe: {
-		u8 value    = imm8();
-		registers.f = NEGATIVE | (registers.a - value == 0 ? ZERO : 0) |
-		              ((registers.a & 0xF) < (value & 0xF) ? HALF_CARRY : 0) |
-		              (registers.a < value ? CARRY : 0);
+		u8 value = imm8();
+		setNegativeFlag(true);
+		setZeroFlag(registers.a - value == 0);
+		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF));
+		setCarryFlag(registers.a < value);
 		break;
 	}
 
@@ -457,7 +547,7 @@ void CPU::step()
 		u8 low  = pop();
 		u8 high = pop();
 		setr16(registers.pc, low | (high << 8));
-		interrupt_enabled = true;
+		interrupt_enable = 1;
 		break;
 	}
 
@@ -531,6 +621,8 @@ void CPU::step()
 		u8   high = pop();
 		u16 &reg  = r16stk(opcode >> 4);
 		reg       = low | (high << 8);
+		if (opcode == 0xF1) // pop af: lower 4 bits of F are always 0
+			registers.f &= 0xF0;
 		break;
 	}
 
@@ -562,7 +654,10 @@ void CPU::step()
 			bool carry  = (reg & 0x80) != 0;
 			u8   result = (reg << 1) | (registers.f & CARRY ? 1 : 0);
 			r8(opcode)  = result;
-			registers.f = (carry ? CARRY : 0) | (result == 0 ? ZERO : 0);
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
 			break;
 		}
 
@@ -579,7 +674,10 @@ void CPU::step()
 			bool carry  = reg & 1;
 			u8   result = (reg >> 1) | (registers.f & CARRY ? 0x80 : 0);
 			r8(opcode)  = result;
-			registers.f = (carry ? CARRY : 0) | (result == 0 ? ZERO : 0);
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
 			break;
 		}
 
@@ -596,9 +694,13 @@ void CPU::step()
 		case 0x35:
 		case 0x36:
 		case 0x37: {
-			u8 reg      = r8(opcode);
-			r8(opcode)  = ((reg & 0x0F) << 4) | ((reg & 0xF0) >> 4);
-			registers.f = (reg == 0 ? ZERO : 0);
+			u8 reg     = r8(opcode);
+			u8 result  = ((reg & 0x0F) << 4) | ((reg & 0xF0) >> 4);
+			r8(opcode) = result;
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(false);
 			break;
 		}
 
@@ -615,7 +717,10 @@ void CPU::step()
 			bool carry  = (reg & 0x01) != 0;
 			u8   result = reg >> 1;
 			r8(opcode)  = result;
-			registers.f = (carry ? CARRY : 0) | (result == 0 ? ZERO : 0);
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
 			break;
 		}
 
@@ -684,8 +789,9 @@ void CPU::step()
 		case 0x7D:
 		case 0x7E:
 		case 0x7F:
-			registers.f =
-			    (registers.f & CARRY) | HALF_CARRY | (r8(opcode) & b3(opcode >> 3) ? 0 : ZERO);
+			setHalfCarryFlag(true);
+			setNegativeFlag(false);
+			setZeroFlag(!(r8(opcode) & b3(opcode >> 3)));
 			break;
 
 		// res b3, r8
@@ -860,13 +966,26 @@ void CPU::step()
 		break;
 
 	// add sp, imm8
+	case 0xE8: {
+		ticks += 4;
+		s8  offset = static_cast<s8>(imm8());
+		u16 result = registers.sp + offset;
+		setZeroFlag(false);
+		setNegativeFlag(false);
+		setHalfCarryFlag((registers.sp & 0x0F) + (offset & 0x0F) > 0x0F);
+		setCarryFlag((registers.sp & 0xFF) + (offset & 0xFF) > 0xFF);
+		setr16(registers.sp, static_cast<u16>(result));
+		break;
+	}
 
 	// ld hl, sp + imm8
 	case 0xF8: {
-		s8  offset  = static_cast<s8>(imm8());
-		u16 result  = registers.sp + offset;
-		registers.f = ((registers.sp & 0x0F) + (offset & 0x0F) > 0x0F ? HALF_CARRY : 0) |
-		              (result > 0xFFFF ? CARRY : 0);
+		s8  offset = static_cast<s8>(imm8());
+		u16 result = registers.sp + offset;
+		setZeroFlag(false);
+		setNegativeFlag(false);
+		setHalfCarryFlag((registers.sp & 0x0F) + (offset & 0x0F) > 0x0F);
+		setCarryFlag((registers.sp & 0xFF) + (offset & 0xFF) > 0xFF);
 		setr16(registers.hl, static_cast<u16>(result));
 		break;
 	}
@@ -878,12 +997,12 @@ void CPU::step()
 
 	// di
 	case 0xF3:
-		interrupt_enabled = false;
+		interrupt_enable = 0;
 		break;
 
 	// ei
 	case 0xFB:
-		interrupt_enabled = true;
+		interrupt_enable = 1;
 		break;
 
 	default: {

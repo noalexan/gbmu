@@ -8,10 +8,9 @@ class GameBoy;
 class CPU {
 private:
 	GameBoy &gameboy;
-	int      ticks             = 0;
-	bool     interrupt_enabled = false;
-	u8       interrupt_flags   = 0;
-	u8       interrupt_enable  = 0;
+	int      ticks            = 0;
+	u8       interrupt_flags  = 0;
+	u8       interrupt_enable = 0;
 
 	enum Flag { ZERO = 1 << 7, NEGATIVE = 1 << 6, HALF_CARRY = 1 << 5, CARRY = 1 << 4 };
 
@@ -130,6 +129,31 @@ private:
 	inline void push(u8 value) { access(--registers.sp) = value; }
 
 	inline u8 &pop() { return access(registers.sp++); }
+
+	inline bool getZeroFlag() const { return registers.f & ZERO; }
+	inline bool getNegativeFlag() const { return registers.f & NEGATIVE; }
+	inline bool getHalfCarryFlag() const { return registers.f & HALF_CARRY; }
+	inline bool getCarryFlag() const { return registers.f & CARRY; }
+
+	inline void setZeroFlag(bool value)
+	{
+		registers.f = (registers.f & ~ZERO) | (value ? ZERO : 0);
+	}
+
+	inline void setNegativeFlag(bool value)
+	{
+		registers.f = (registers.f & ~NEGATIVE) | (value ? NEGATIVE : 0);
+	}
+
+	inline void setHalfCarryFlag(bool value)
+	{
+		registers.f = (registers.f & ~HALF_CARRY) | (value ? HALF_CARRY : 0);
+	}
+
+	inline void setCarryFlag(bool value)
+	{
+		registers.f = (registers.f & ~CARRY) | (value ? CARRY : 0);
+	}
 
 public:
 	CPU(GameBoy &);

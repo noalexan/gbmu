@@ -8,7 +8,6 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 {
 	ram.fill(nullptr);
 
-	register_address(0xff50, &bios_disabled);
 	register_address_range(0x0000, 0x3fff, gameboy.getCartridge().getRomData());
 	register_address_range(0x4000, 0x7fff, gameboy.getCartridge().getRomData() + 0x4000);
 	register_address_range(0x8000, 0x9fff, gameboy.getPPU().vram);
@@ -16,15 +15,17 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 	register_address_range(0xc000, 0xdfff, wram);
 	register_address_range(0xe000, 0xfdff, wram);
 	register_address_range(0xfe00, 0xfe9f, gameboy.getPPU().oam);
-	// register_address_range(0xfea0, 0xfeff, unusable);
-	register_address(0xff00, &gameboy.getJoypad().getP1());
+	register_address_range(0xfea0, 0xfeff, unusable);
+	register_address(0xff00, &gameboy.getJoypad().getInput());
 	register_address(0xff01, &gameboy.getSerial().getSerialData());
 	register_address(0xff02, &gameboy.getSerial().getSerialControl());
 	register_address_range(0xff04, 0xff07, gameboy.getTimer().registers);
+	register_address(0xff0f, &gameboy.getCPU().getInterruptFlags());
 	register_address_range(0xff10, 0xff26, gameboy.getAPU().registers);
 	register_address_range(0xff40, 0xff4b, gameboy.getPPU().registers);
 	register_address_range(0xff4c, 0xff4d, unusable);
-	register_address(0xff0f, &gameboy.getCPU().getInterruptFlags());
+	register_address(0xff50, &bios_disabled);
+	register_address(0xff7f, unusable);
 	register_address_range(0xff80, 0xfffe, hram);
 	register_address(0xffff, &gameboy.getCPU().getInterruptEnable());
 }
