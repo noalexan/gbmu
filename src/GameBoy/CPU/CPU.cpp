@@ -24,6 +24,7 @@ void CPU::step()
 
 	if (ime) {
 		u8 fired_interrupts = interrupt_flags & interrupt_enable;
+
 		if (fired_interrupts) {
 			halted = false;
 
@@ -118,7 +119,7 @@ void CPU::step()
 		u16 value  = r16(opcode >> 4);
 		u32 result = registers.hl + value;
 		setNegativeFlag(false);
-		setHalfCarryFlag((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);	
+		setHalfCarryFlag((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);
 		setCarryFlag(result > 0xFFFF);
 		setr16(registers.hl, static_cast<u16>(result));
 		break;
@@ -184,6 +185,15 @@ void CPU::step()
 	}
 
 	// rrca
+	case 0x0F: {
+		bool carry  = (registers.a & 0x01) != 0;
+		registers.a = (registers.a >> 1) | (carry ? 0x80 : 0);
+		setZeroFlag(false);
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(carry);
+		break;
+	}
 
 	// rla
 	case 0x17: {
@@ -230,6 +240,20 @@ void CPU::step()
 		registers.a = ~registers.a;
 		setNegativeFlag(true);
 		setHalfCarryFlag(true);
+		break;
+
+	// scf
+	case 0x37:
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(true);
+		break;
+
+	// ccf
+	case 0x3F:
+		setNegativeFlag(false);
+		setHalfCarryFlag(false);
+		setCarryFlag(!getCarryFlag());
 		break;
 
 	// jr imm8
@@ -671,6 +695,46 @@ void CPU::step()
 		opcode = imm8();
 
 		switch (opcode) {
+		// rlc r8
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x03:
+		case 0x04:
+		case 0x05:
+		case 0x06:
+		case 0x07: {
+			u8   reg    = r8(opcode);
+			bool carry  = (reg & 0x80) != 0;
+			u8   result = (reg << 1) | (carry ? 1 : 0);
+			r8(opcode)  = result;
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
+			break;
+		}
+
+		// rrc r8
+		case 0x08:
+		case 0x09:
+		case 0x0A:
+		case 0x0B:
+		case 0x0C:
+		case 0x0D:
+		case 0x0E:
+		case 0x0F: {
+			u8   reg    = r8(opcode);
+			bool carry  = (reg & 0x01) != 0;
+			u8   result = (reg >> 1) | (carry ? 0x80 : 0);
+			r8(opcode)  = result;
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
+			break;
+		}
+
 		// rl r8
 		case 0x10:
 		case 0x11:
@@ -712,8 +776,44 @@ void CPU::step()
 		}
 
 		// sla r8
+		case 0x20:
+		case 0x21:
+		case 0x22:
+		case 0x23:
+		case 0x24:
+		case 0x25:
+		case 0x26:
+		case 0x27: {
+			u8   reg    = r8(opcode);
+			bool carry  = (reg & 0x80) != 0;
+			u8   result = reg << 1;
+			r8(opcode)  = result;
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
+			break;
+		}
 
 		// sra r8
+		case 0x28:
+		case 0x29:
+		case 0x2A:
+		case 0x2B:
+		case 0x2C:
+		case 0x2D:
+		case 0x2E:
+		case 0x2F: {
+			u8   reg    = r8(opcode);
+			bool carry  = (reg & 0x01) != 0;
+			u8   result = (reg >> 1) | (reg & 0x80);
+			r8(opcode)  = result;
+			setZeroFlag(result == 0);
+			setNegativeFlag(false);
+			setHalfCarryFlag(false);
+			setCarryFlag(carry);
+			break;
+		}
 
 		// swap r8
 		case 0x30:
@@ -880,7 +980,15 @@ void CPU::step()
 		case 0xB4:
 		case 0xB5:
 		case 0xB6:
-		case 0xB7: {
+		case 0xB7:
+		case 0xB8:
+		case 0xB9:
+		case 0xBA:
+		case 0xBB:
+		case 0xBC:
+		case 0xBD:
+		case 0xBE:
+		case 0xBF: {
 			u8 value   = r8(opcode);
 			r8(opcode) = value & ~b3(opcode >> 3);
 			break;
