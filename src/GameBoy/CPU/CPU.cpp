@@ -11,7 +11,7 @@ CPU::~CPU() {}
 
 u8 &CPU::access(u16 address)
 {
-	ticks += 4;
+	ticks += TICKS_PER_CYLCES;
 	return gameboy.getMMU().access(address);
 }
 
@@ -22,8 +22,37 @@ void CPU::step()
 		return;
 	}
 
+	if (ime) {
+		u8 fired_interrupts = interrupt_flags & interrupt_enable;
+		if (fired_interrupts) {
+			halted = false;
+
+			for (int i = 0; i < 5; i++) {
+				if (fired_interrupts & (1 << i)) {
+					interrupt_flags &= ~(1 << i);
+					interrupt_enable = 0;
+
+					// Interrupt handling takes 5 machine cycles
+					ticks += TICKS_PER_CYLCES * 2;
+					push(registers.pc >> 8);
+					push(registers.pc);
+					setr16(registers.pc, 0x40 + i * 8);
+
+					break;
+				}
+			}
+		}
+	}
+
+	if (halted) {
+		return;
+	}
+
 	u8 opcode = imm8();
 
+	// Message to someone reading this:
+	//   Don't hate me for this big switch statement,
+	//   I'm planning to refactor this later.
 	switch (opcode) {
 	// nop
 	case 0x00:
@@ -88,7 +117,8 @@ void CPU::step()
 	case 0x39: {
 		u16 value  = r16(opcode >> 4);
 		u32 result = registers.hl + value;
-		setHalfCarryFlag((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);
+		setNegativeFlag(false);
+		setHalfCarryFlag((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);	
 		setCarryFlag(result > 0xFFFF);
 		setr16(registers.hl, static_cast<u16>(result));
 		break;
@@ -294,7 +324,7 @@ void CPU::step()
 
 	// halt
 	case 0x76:
-		std::cerr << "HALT instr called" << std::endl;
+		halted = true;
 		break;
 
 	// add a, r8
@@ -547,7 +577,7 @@ void CPU::step()
 		u8 low  = pop();
 		u8 high = pop();
 		setr16(registers.pc, low | (high << 8));
-		interrupt_enable = 1;
+		ime = 1;
 		break;
 	}
 
@@ -928,7 +958,8 @@ void CPU::step()
 
 		default: {
 			std::stringstream ss;
-			ss << "Unknown CB instruction: 0x" << std::hex << (int)opcode;
+			ss << "Unknown CB instruction: 0x" << std::hex << std::setw(2) << std::setfill('0')
+			   << (int)opcode;
 			throw std::runtime_error(ss.str());
 		}
 		}
@@ -997,12 +1028,12 @@ void CPU::step()
 
 	// di
 	case 0xF3:
-		interrupt_enable = 0;
+		ime = 0;
 		break;
 
 	// ei
 	case 0xFB:
-		interrupt_enable = 1;
+		ime = 1;
 		break;
 
 	default: {

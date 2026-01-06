@@ -3,14 +3,20 @@
 #include <cstdint>
 #include <types.h>
 
+#define TICKS_PER_CYLCES 4
+
 class GameBoy;
 
 class CPU {
 private:
 	GameBoy &gameboy;
 	int      ticks            = 0;
+
 	u8       interrupt_flags  = 0;
 	u8       interrupt_enable = 0;
+	u8       ime = 0;
+
+	bool halted = false;
 
 	enum Flag { ZERO = 1 << 7, NEGATIVE = 1 << 6, HALF_CARRY = 1 << 5, CARRY = 1 << 4 };
 
@@ -42,7 +48,7 @@ private:
 
 	inline void setr16(u16 &r16, u16 address)
 	{
-		ticks += 4;
+		ticks += TICKS_PER_CYLCES;
 		r16 = address;
 	}
 
@@ -162,4 +168,14 @@ public:
 
 	u8 &getInterruptFlags() { return interrupt_flags; }
 	u8 &getInterruptEnable() { return interrupt_enable; }
+
+	enum Interrupt {
+		VBLANK = 1 << 0,
+		LCD = 1 << 1,
+		TIMER = 1 << 2,
+		SERIAL = 1 << 3,
+		JOYPAD = 1 << 4
+	};
+
+	void requestInterrupt(enum Interrupt interrupt) { interrupt_flags |= interrupt; }
 };

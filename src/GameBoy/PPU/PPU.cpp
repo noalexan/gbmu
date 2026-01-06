@@ -4,8 +4,8 @@
 
 static const u32 PALETTE_COLORS[4] = {0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF};
 
-PPU::PPU(GameBoy &gb)
-    : lcdc(registers[0]), stat(registers[1]), scy(registers[2]), scx(registers[3]),
+PPU::PPU(GameBoy &_gb)
+    : gb(_gb), lcdc(registers[0]), stat(registers[1]), scy(registers[2]), scx(registers[3]),
       ly(registers[4]), lyc(registers[5]), dma(registers[6]), bgp(registers[7]), obp0(registers[8]),
       obp1(registers[9]), wy(registers[10]), wx(registers[11])
 {
@@ -96,6 +96,7 @@ void PPU::step()
 			ly++;
 
 			if (ly >= SCREEN_HEIGHT) {
+				gb.getCPU().requestInterrupt(CPU::Interrupt::VBLANK);
 				mode = VBLANK;
 			} else {
 				mode = OAM_SEARCH;

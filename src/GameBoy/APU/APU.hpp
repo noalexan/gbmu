@@ -113,4 +113,5 @@ public:
 	virtual ~APU();
 
 	u8 registers[0x17];
+	u8 wave_pattern[0x10];
 };

@@ -11,6 +11,7 @@ class GameBoy;
 
 class PPU {
 private:
+	GameBoy &gb;
 	SDL_Window   *window   = nullptr;
 	SDL_Renderer *renderer = nullptr;
 	SDL_Texture  *texture  = nullptr;
