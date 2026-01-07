@@ -1,4 +1,5 @@
 #include "APU.hpp"
+#include "../GameBoy.hpp"
 #include <cmath>
 
 void APU::audioCallback(void *userdata, u8 *stream, int len)
@@ -139,13 +140,13 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 	}
 }
 
-APU::APU()
-    : nr10(registers[0x00]), nr11(registers[0x01]), nr12(registers[0x02]), nr13(registers[0x03]),
-      nr14(registers[0x04]), nr21(registers[0x06]), nr22(registers[0x07]), nr23(registers[0x08]),
-      nr24(registers[0x09]), nr30(registers[0x0A]), nr31(registers[0x0B]), nr32(registers[0x0C]),
-      nr33(registers[0x0D]), nr34(registers[0x0E]), nr41(registers[0x10]), nr42(registers[0x11]),
-      nr43(registers[0x12]), nr44(registers[0x13]), nr50(registers[0x14]), nr51(registers[0x15]),
-      nr52(registers[0x16])
+APU::APU(GameBoy &gb)
+    : gameboy(gb), nr10(registers[0x00]), nr11(registers[0x01]), nr12(registers[0x02]),
+      nr13(registers[0x03]), nr14(registers[0x04]), nr21(registers[0x06]), nr22(registers[0x07]),
+      nr23(registers[0x08]), nr24(registers[0x09]), nr30(registers[0x0A]), nr31(registers[0x0B]),
+      nr32(registers[0x0C]), nr33(registers[0x0D]), nr34(registers[0x0E]), nr41(registers[0x10]),
+      nr42(registers[0x11]), nr43(registers[0x12]), nr44(registers[0x13]), nr50(registers[0x14]),
+      nr51(registers[0x15]), nr52(registers[0x16])
 {
 	SDL_Init(SDL_INIT_AUDIO);
 
@@ -163,11 +164,41 @@ APU::APU()
 	if (audio_device != 0) {
 		SDL_PauseAudioDevice(audio_device, 0);
 	}
+
+	for (u16 addr = 0xff10; addr <= 0xff26; addr++) {
+		gameboy.getMMU().register_handler(
+		    addr, [this, addr]() { return this->read(addr); },
+		    [this, addr](u8 value) { this->write(addr, value); });
+	}
+	for (u16 addr = 0xff30; addr <= 0xff3f; addr++) {
+		gameboy.getMMU().register_handler(
+		    addr, [this, addr]() { return this->read(addr); },
+		    [this, addr](u8 value) { this->write(addr, value); });
+	}
 }
 
 APU::~APU()
 {
 	if (audio_device != 0) {
 		SDL_CloseAudioDevice(audio_device);
+	}
+}
+
+u8 APU::read(u16 address)
+{
+	if (address >= 0xff10 && address <= 0xff26) {
+		return registers[address - 0xff10];
+	} else if (address >= 0xff30 && address <= 0xff3f) {
+		return wave_pattern[address - 0xff30];
+	}
+	return 0xff;
+}
+
+void APU::write(u16 address, u8 value)
+{
+	if (address >= 0xff10 && address <= 0xff26) {
+		registers[address - 0xff10] = value;
+	} else if (address >= 0xff30 && address <= 0xff3f) {
+		wave_pattern[address - 0xff30] = value;
 	}
 }

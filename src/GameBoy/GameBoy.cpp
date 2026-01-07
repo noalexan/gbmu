@@ -7,16 +7,16 @@
 #include <thread>
 
 GameBoy::GameBoy(const std::string &filename)
-    : cartridge(filename), apu(), ppu(*this), mmu(*this), cpu(*this), serial(*this), timer(*this),
-      joypad(*this)
+    : cartridge(filename), mmu(*this), apu(*this), ppu(*this), cpu(*this), serial(*this),
+      timer(*this), joypad(*this)
 {
 	// Print cartridge info
-	std::cout << "\033[1;33m" << cartridge.getTitle() << "\033[0m" << std::endl;
-	std::cout << "  Type: " << cartridge.getCartridgeTypeString() << std::endl;
-	std::cout << "  ROM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')
+	std::cout << "\033[1;33m" << cartridge.getTitle() << "\033[0m" << std::endl
+	          << "  Type: " << cartridge.getCartridgeTypeString() << std::endl
+	          << "  ROM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')
 	          << (int)cartridge.getRomSize() << std::dec << " ("
-	          << cartridge.getRomDataSize() / 1024 << " KB)" << std::endl;
-	std::cout << "  RAM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')
+	          << cartridge.getRomDataSize() / 1024 << " KB)" << std::endl
+	          << "  RAM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')
 	          << (int)cartridge.getRamSize() << std::dec << std::endl;
 }
 
@@ -52,8 +52,9 @@ void GameBoy::run()
 		auto frame_start = std::chrono::high_resolution_clock::now();
 
 		for (int i = 0; i < 70224; i++) {
-			cpu.step();
-			ppu.step();
+			cpu.tick();
+			ppu.tick();
+			timer.tick();
 		}
 
 		ppu.render();

@@ -3,42 +3,36 @@
 #include "../Cartridge/Cartridge.hpp"
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <types.h>
 
 class GameBoy;
 
 class MMU {
+public:
+	using ReadHandler  = std::function<u8()>;
+	using WriteHandler = std::function<void(u8)>;
+
 private:
 	GameBoy &gameboy;
 
-	std::array<u8 *, 0x10000> ram;
+	std::array<ReadHandler, 0x10000>  read_handlers;
+	std::array<WriteHandler, 0x10000> write_handlers;
 
 	u8 bios_disabled = 0;
 	u8 wram[0x2000];
 	u8 eram[0x2000];
 	u8 io_registers[0x80];
-	u8 unusable[0x60];
 	u8 hram[0x7F];
-
-	inline void register_address(u16 addr, u8 *ptr) { ram[addr] = ptr; }
-
-	inline void register_address_range(u16 start, u16 end, u8 *array)
-	{
-		for (u16 addr = start; addr <= end; addr++)
-			register_address(addr, array + addr - start);
-	}
-
-	inline void unregister_address(u16 addr) { ram[addr] = nullptr; }
-
-	inline void unregister_address_range(u16 start, u16 end)
-	{
-		for (u16 addr = start; addr <= end; addr++)
-			unregister_address(addr);
-	}
 
 public:
 	MMU(GameBoy &);
 	virtual ~MMU();
 
-	u8 &access(u16 address);
+	u8   read(u16 address);
+	void write(u16 address, u8 value);
+
+	void register_handler(u16 address, ReadHandler read_handler, WriteHandler write_handler);
+	void register_handler_range(u16 start, u16 end, ReadHandler read_handler,
+	                            WriteHandler write_handler);
 };

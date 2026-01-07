@@ -9,6 +9,10 @@ PPU::PPU(GameBoy &_gb)
       ly(registers[4]), lyc(registers[5]), dma(registers[6]), bgp(registers[7]), obp0(registers[8]),
       obp1(registers[9]), wy(registers[10]), wx(registers[11])
 {
+	std::fill(std::begin(vram), std::end(vram), 0);
+	std::fill(std::begin(registers), std::end(registers), 0);
+	std::fill(std::begin(oam), std::end(oam), 0);
+
 	SDL_Init(SDL_INIT_VIDEO);
 	std::string title = "GBMU - " + gb.getCartridge().getTitle();
 	window   = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -17,6 +21,22 @@ PPU::PPU(GameBoy &_gb)
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	texture  = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,
 	                             SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	for (u16 addr = 0x8000; addr <= 0x9fff; addr++) {
+		gb.getMMU().register_handler(
+		    addr, [this, addr]() { return this->read(addr); },
+		    [this, addr](u8 value) { this->write(addr, value); });
+	}
+	for (u16 addr = 0xfe00; addr <= 0xfe9f; addr++) {
+		gb.getMMU().register_handler(
+		    addr, [this, addr]() { return this->read(addr); },
+		    [this, addr](u8 value) { this->write(addr, value); });
+	}
+	for (u16 addr = 0xff40; addr <= 0xff4b; addr++) {
+		gb.getMMU().register_handler(
+		    addr, [this, addr]() { return this->read(addr); },
+		    [this, addr](u8 value) { this->write(addr, value); });
+	}
 }
 
 PPU::~PPU()
@@ -29,7 +49,7 @@ PPU::~PPU()
 		SDL_DestroyWindow(window);
 }
 
-void PPU::step()
+void PPU::tick()
 {
 	if (!(lcdc & LCDC::PPU_ENABLE)) {
 		return;
@@ -51,7 +71,6 @@ void PPU::step()
 			u32 *scanline_ptr = &framebuffer[ly * SCREEN_WIDTH];
 
 			u8  *bg_tile_map         = (lcdc & LCDC::BG_TILE_MAP) ? &vram[0x1C00] : &vram[0x1800];
-			u8  *bg_tile_data        = (lcdc & LCDC::BG_TILE_DATA) ? &vram[0x0000] : &vram[0x1000];
 			bool use_signed_indexing = !(lcdc & LCDC::BG_TILE_DATA);
 
 			u8  scrolled_y = ly + scy;
@@ -70,8 +89,8 @@ void PPU::step()
 					tile_address = tile_index * 16;
 				}
 
-				u8 byte1 = bg_tile_data[tile_address + (line << 1)];
-				u8 byte2 = bg_tile_data[tile_address + (line << 1) + 1];
+				u8 byte1 = vram[tile_address + (line << 1)];
+				u8 byte2 = vram[tile_address + (line << 1) + 1];
 
 				u8 bit         = 7 - (scrolled_x & 0x07);
 				u8 color_index = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
@@ -123,4 +142,27 @@ void PPU::render()
 	SDL_UpdateTexture(texture, nullptr, framebuffer, SCREEN_WIDTH * 4);
 	SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 	SDL_RenderPresent(renderer);
+}
+
+u8 PPU::read(u16 address)
+{
+	if (address >= 0x8000 && address <= 0x9fff) {
+		return vram[address - 0x8000];
+	} else if (address >= 0xfe00 && address <= 0xfe9f) {
+		return oam[address - 0xfe00];
+	} else if (address >= 0xff40 && address <= 0xff4b) {
+		return registers[address - 0xff40];
+	}
+	return 0xff;
+}
+
+void PPU::write(u16 address, u8 value)
+{
+	if (address >= 0x8000 && address <= 0x9fff) {
+		vram[address - 0x8000] = value;
+	} else if (address >= 0xfe00 && address <= 0xfe9f) {
+		oam[address - 0xfe00] = value;
+	} else if (address >= 0xff40 && address <= 0xff4b) {
+		registers[address - 0xff40] = value;
+	}
 }

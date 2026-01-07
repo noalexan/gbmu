@@ -11,7 +11,7 @@ class GameBoy;
 
 class PPU {
 private:
-	GameBoy &gb;
+	GameBoy      &gb;
 	SDL_Window   *window   = nullptr;
 	SDL_Renderer *renderer = nullptr;
 	SDL_Texture  *texture  = nullptr;
@@ -50,8 +50,11 @@ public:
 	PPU(GameBoy &);
 	virtual ~PPU();
 
-	void step();
+	void tick();
 	void render();
+
+	u8   read(u16 address);
+	void write(u16 address, u8 value);
 
 	SDL_Window   *getWindow() const { return window; }
 	SDL_Renderer *getRenderer() const { return renderer; }

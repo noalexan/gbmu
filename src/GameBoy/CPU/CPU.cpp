@@ -5,48 +5,70 @@
 #include <sstream>
 #include <stdexcept>
 
-CPU::CPU(GameBoy &gb) : gameboy(gb), registers{} {}
+CPU::CPU(GameBoy &gb) : gameboy(gb), registers{}
+{
+	gameboy.getMMU().register_handler(
+	    0xff0f, [this]() { return this->readIO(0xff0f); },
+	    [this](u8 value) { this->writeIO(0xff0f, value); });
+	gameboy.getMMU().register_handler(
+	    0xffff, [this]() { return this->readIO(0xffff); },
+	    [this](u8 value) { this->writeIO(0xffff, value); });
+}
 
 CPU::~CPU() {}
 
-u8 &CPU::access(u16 address)
+u8 CPU::read(u16 address)
 {
 	ticks += TICKS_PER_CYLCES;
-	return gameboy.getMMU().access(address);
+	return gameboy.getMMU().read(address);
 }
 
-void CPU::step()
+void CPU::write(u16 address, u8 value)
+{
+	ticks += TICKS_PER_CYLCES;
+	gameboy.getMMU().write(address, value);
+}
+
+void CPU::tick()
 {
 	if (ticks > 0) {
 		ticks--;
 		return;
 	}
 
-	if (ime) {
-		u8 fired_interrupts = interrupt_flags & interrupt_enable;
+	u8 fired_interrupts = interrupt_flags & interrupt_enable;
 
-		if (fired_interrupts) {
-			halted = false;
+	if (ime && fired_interrupts) {
+		halted                 = false;
+		enable_interrupt_delay = false;
 
-			for (int i = 0; i < 5; i++) {
-				if (fired_interrupts & (1 << i)) {
-					interrupt_flags &= ~(1 << i);
-					interrupt_enable = 0;
+		for (int i = 0; i < 5; i++) {
+			if (fired_interrupts & (1 << i)) {
+				interrupt_flags &= ~(1 << i);
+				ime = 0;
 
-					// Interrupt handling takes 5 machine cycles
-					ticks += TICKS_PER_CYLCES * 2;
-					push(registers.pc >> 8);
-					push(registers.pc);
-					setr16(registers.pc, 0x40 + i * 8);
+				// Interrupt handling takes 5 machine cycles
+				ticks += TICKS_PER_CYLCES * 2;
+				push(registers.pc >> 8);
+				push(registers.pc);
+				set_r16(registers.pc, 0x40 + i * 8);
 
-					break;
-				}
+				break;
 			}
 		}
 	}
 
 	if (halted) {
-		return;
+		if (fired_interrupts) {
+			halted = false;
+		} else {
+			return;
+		}
+	}
+
+	if (enable_interrupt_delay) {
+		enable_interrupt_delay = false;
+		ime                    = 1;
 	}
 
 	u8 opcode = imm8();
@@ -72,7 +94,7 @@ void CPU::step()
 	case 0x12:
 	case 0x22:
 	case 0x32:
-		r16mem(opcode >> 4) = registers.a;
+		write_r16mem(opcode >> 4, registers.a);
 		break;
 
 	// ld a, [r16mem]
@@ -80,14 +102,14 @@ void CPU::step()
 	case 0x1A:
 	case 0x2A:
 	case 0x3A:
-		registers.a = r16mem(opcode >> 4);
+		registers.a = read_r16mem(opcode >> 4);
 		break;
 
 	// ld [imm16], sp
 	case 0x08: {
-		u16 address         = imm16();
-		access(address)     = registers.sp & 0x00FF;
-		access(address + 1) = (registers.sp & 0xFF00) >> 8;
+		u16 address = imm16();
+		write(address, registers.sp & 0x00FF);
+		write(address + 1, (registers.sp & 0xFF00) >> 8);
 		break;
 	}
 
@@ -97,7 +119,7 @@ void CPU::step()
 	case 0x23:
 	case 0x33: {
 		u16 &reg = r16(opcode >> 4);
-		setr16(reg, reg + 1);
+		set_r16(reg, reg + 1);
 		break;
 	}
 
@@ -107,7 +129,7 @@ void CPU::step()
 	case 0x2B:
 	case 0x3B: {
 		u16 &reg = r16(opcode >> 4);
-		setr16(reg, reg - 1);
+		set_r16(reg, reg - 1);
 		break;
 	}
 
@@ -121,7 +143,7 @@ void CPU::step()
 		setNegativeFlag(false);
 		setHalfCarryFlag((registers.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF);
 		setCarryFlag(result > 0xFFFF);
-		setr16(registers.hl, static_cast<u16>(result));
+		set_r16(registers.hl, static_cast<u16>(result));
 		break;
 	}
 
@@ -134,10 +156,10 @@ void CPU::step()
 	case 0x1C:
 	case 0x2C:
 	case 0x3C: {
-		u8 &reg         = r8(opcode >> 3);
-		u8  old         = reg;
-		r8(opcode >> 3) = reg + 1; // reuse of `r8` to handle hl++
-		setZeroFlag(reg == 0);
+		u8 old    = read_r8(opcode >> 3);
+		u8 result = old + 1;
+		write_r8(opcode >> 3, result);
+		setZeroFlag(result == 0);
 		setNegativeFlag(false);
 		setHalfCarryFlag((old & 0xF) == 0xF);
 		break;
@@ -152,11 +174,11 @@ void CPU::step()
 	case 0x1D:
 	case 0x2D:
 	case 0x3D: {
-		u8 &reg         = r8(opcode >> 3);
-		u8  old         = reg;
-		r8(opcode >> 3) = reg - 1; // reuse of `r8` to handle hl--
+		u8 old    = read_r8(opcode >> 3);
+		u8 result = old - 1;
+		write_r8(opcode >> 3, result);
 		setNegativeFlag(true);
-		setZeroFlag(reg == 0);
+		setZeroFlag(result == 0);
 		setHalfCarryFlag((old & 0xF) == 0);
 		break;
 	}
@@ -170,7 +192,7 @@ void CPU::step()
 	case 0x1E:
 	case 0x2E:
 	case 0x3E:
-		r8(opcode >> 3) = imm8();
+		write_r8(opcode >> 3, imm8());
 		break;
 
 	// rlca
@@ -259,7 +281,7 @@ void CPU::step()
 	// jr imm8
 	case 0x18: {
 		s8 offset = static_cast<s8>(imm8());
-		setr16(registers.pc, registers.pc + offset);
+		set_r16(registers.pc, registers.pc + offset);
 		break;
 	}
 
@@ -270,7 +292,7 @@ void CPU::step()
 	case 0x38: {
 		s8 offset = static_cast<s8>(imm8());
 		if (cond(opcode >> 3))
-			setr16(registers.pc, registers.pc + offset);
+			set_r16(registers.pc, registers.pc + offset);
 		break;
 	}
 
@@ -343,7 +365,7 @@ void CPU::step()
 	case 0x7D:
 	case 0x7E:
 	case 0x7F:
-		r8(opcode >> 3) = r8(opcode);
+		write_r8(opcode >> 3, read_r8(opcode));
 		break;
 
 	// halt
@@ -360,7 +382,7 @@ void CPU::step()
 	case 0x85:
 	case 0x86:
 	case 0x87: {
-		u8 value = r8(opcode);
+		u8 value = read_r8(opcode);
 		setHalfCarryFlag((registers.a & 0xF) + (value & 0xF) > 0xF);
 		setCarryFlag(registers.a + value > 0xFF);
 		registers.a += value;
@@ -378,7 +400,7 @@ void CPU::step()
 	case 0x8D:
 	case 0x8E:
 	case 0x8F: {
-		u8 value = r8(opcode);
+		u8 value = read_r8(opcode);
 		u8 carry = (registers.f & CARRY) ? 1 : 0;
 		setHalfCarryFlag((registers.a & 0xF) + (value & 0xF) + carry > 0xF);
 		setCarryFlag(registers.a + value + carry > 0xFF);
@@ -397,7 +419,7 @@ void CPU::step()
 	case 0x95:
 	case 0x96:
 	case 0x97: {
-		u8 value = r8(opcode);
+		u8 value = read_r8(opcode);
 		setNegativeFlag(true);
 		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF));
 		setCarryFlag(registers.a < value);
@@ -415,7 +437,7 @@ void CPU::step()
 	case 0x9D:
 	case 0x9E:
 	case 0x9F: {
-		u8 value = r8(opcode);
+		u8 value = read_r8(opcode);
 		u8 carry = (registers.f & CARRY) ? 1 : 0;
 		setNegativeFlag(true);
 		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF) + carry);
@@ -434,7 +456,7 @@ void CPU::step()
 	case 0xA5:
 	case 0xA6:
 	case 0xA7:
-		registers.a &= r8(opcode);
+		registers.a &= read_r8(opcode);
 		setZeroFlag(registers.a == 0);
 		setNegativeFlag(false);
 		setHalfCarryFlag(true);
@@ -450,7 +472,7 @@ void CPU::step()
 	case 0xad:
 	case 0xae:
 	case 0xaf:
-		registers.a ^= r8(opcode);
+		registers.a ^= read_r8(opcode);
 		setZeroFlag(registers.a == 0);
 		setNegativeFlag(false);
 		setHalfCarryFlag(false);
@@ -466,7 +488,7 @@ void CPU::step()
 	case 0xbd:
 	case 0xbe:
 	case 0xbf: {
-		u8 value = r8(opcode);
+		u8 value = read_r8(opcode);
 		setNegativeFlag(true);
 		setZeroFlag(registers.a - value == 0);
 		setHalfCarryFlag((registers.a & 0xF) < (value & 0xF));
@@ -483,7 +505,7 @@ void CPU::step()
 	case 0xb5:
 	case 0xb6:
 	case 0xb7:
-		registers.a |= r8(opcode);
+		registers.a |= read_r8(opcode);
 		setZeroFlag(registers.a == 0);
 		setNegativeFlag(false);
 		setHalfCarryFlag(false);
@@ -583,7 +605,7 @@ void CPU::step()
 		if (cond(opcode >> 3)) {
 			u8 low  = pop();
 			u8 high = pop();
-			setr16(registers.pc, low | (high << 8));
+			set_r16(registers.pc, low | (high << 8));
 		}
 		break;
 	}
@@ -592,7 +614,7 @@ void CPU::step()
 	case 0xC9: {
 		u8 low  = pop();
 		u8 high = pop();
-		setr16(registers.pc, low | (high << 8));
+		set_r16(registers.pc, low | (high << 8));
 		break;
 	}
 
@@ -600,7 +622,7 @@ void CPU::step()
 	case 0xD9: {
 		u8 low  = pop();
 		u8 high = pop();
-		setr16(registers.pc, low | (high << 8));
+		set_r16(registers.pc, low | (high << 8));
 		ime = 1;
 		break;
 	}
@@ -612,7 +634,7 @@ void CPU::step()
 	case 0xda: {
 		u16 address = imm16();
 		if (cond(opcode >> 3)) {
-			setr16(registers.pc, address);
+			set_r16(registers.pc, address);
 		}
 		break;
 	}
@@ -620,7 +642,7 @@ void CPU::step()
 	// jp imm16
 	case 0xc3: {
 		u16 address = imm16();
-		setr16(registers.pc, address);
+		set_r16(registers.pc, address);
 		break;
 	}
 
@@ -638,7 +660,7 @@ void CPU::step()
 		if (cond(opcode >> 3)) {
 			push(registers.pc >> 8);
 			push(registers.pc);
-			setr16(registers.pc, address);
+			set_r16(registers.pc, address);
 		}
 		break;
 	}
@@ -648,7 +670,7 @@ void CPU::step()
 		u16 address = imm16();
 		push(registers.pc >> 8);
 		push(registers.pc);
-		setr16(registers.pc, address);
+		set_r16(registers.pc, address);
 		break;
 	}
 
@@ -663,7 +685,7 @@ void CPU::step()
 	case 0xFF:
 		push(registers.pc >> 8);
 		push(registers.pc);
-		setr16(registers.pc, opcode & 0b00111000);
+		set_r16(registers.pc, opcode & 0b00111000);
 		break;
 
 	// pop r16stk
@@ -704,10 +726,10 @@ void CPU::step()
 		case 0x05:
 		case 0x06:
 		case 0x07: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = (reg & 0x80) != 0;
 			u8   result = (reg << 1) | (carry ? 1 : 0);
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -724,10 +746,10 @@ void CPU::step()
 		case 0x0D:
 		case 0x0E:
 		case 0x0F: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = (reg & 0x01) != 0;
 			u8   result = (reg >> 1) | (carry ? 0x80 : 0);
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -744,10 +766,10 @@ void CPU::step()
 		case 0x15:
 		case 0x16:
 		case 0x17: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = (reg & 0x80) != 0;
 			u8   result = (reg << 1) | (registers.f & CARRY ? 1 : 0);
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -764,10 +786,10 @@ void CPU::step()
 		case 0x1D:
 		case 0x1E:
 		case 0x1F: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = reg & 1;
 			u8   result = (reg >> 1) | (registers.f & CARRY ? 0x80 : 0);
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -784,10 +806,10 @@ void CPU::step()
 		case 0x25:
 		case 0x26:
 		case 0x27: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = (reg & 0x80) != 0;
 			u8   result = reg << 1;
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -804,10 +826,10 @@ void CPU::step()
 		case 0x2D:
 		case 0x2E:
 		case 0x2F: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = (reg & 0x01) != 0;
 			u8   result = (reg >> 1) | (reg & 0x80);
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -824,9 +846,9 @@ void CPU::step()
 		case 0x35:
 		case 0x36:
 		case 0x37: {
-			u8 reg     = r8(opcode);
-			u8 result  = ((reg & 0x0F) << 4) | ((reg & 0xF0) >> 4);
-			r8(opcode) = result;
+			u8 reg    = read_r8(opcode);
+			u8 result = ((reg & 0x0F) << 4) | ((reg & 0xF0) >> 4);
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -843,10 +865,10 @@ void CPU::step()
 		case 0x3D:
 		case 0x3E:
 		case 0x3F: {
-			u8   reg    = r8(opcode);
+			u8   reg    = read_r8(opcode);
 			bool carry  = (reg & 0x01) != 0;
 			u8   result = reg >> 1;
-			r8(opcode)  = result;
+			write_r8(opcode, result);
 			setZeroFlag(result == 0);
 			setNegativeFlag(false);
 			setHalfCarryFlag(false);
@@ -921,7 +943,7 @@ void CPU::step()
 		case 0x7F:
 			setHalfCarryFlag(true);
 			setNegativeFlag(false);
-			setZeroFlag(!(r8(opcode) & b3(opcode >> 3)));
+			setZeroFlag(!(read_r8(opcode) & b3(opcode >> 3)));
 			break;
 
 		// res b3, r8
@@ -989,8 +1011,8 @@ void CPU::step()
 		case 0xBD:
 		case 0xBE:
 		case 0xBF: {
-			u8 value   = r8(opcode);
-			r8(opcode) = value & ~b3(opcode >> 3);
+			u8 value = read_r8(opcode);
+			write_r8(opcode, value & ~b3(opcode >> 3));
 			break;
 		}
 
@@ -1059,8 +1081,8 @@ void CPU::step()
 		case 0xFD:
 		case 0xFE:
 		case 0xFF: {
-			u8 value   = r8(opcode);
-			r8(opcode) = value | b3(opcode >> 3);
+			u8 value = read_r8(opcode);
+			write_r8(opcode, value | b3(opcode >> 3));
 			break;
 		}
 
@@ -1076,32 +1098,32 @@ void CPU::step()
 
 	// ldh [c], a
 	case 0xE2:
-		access(0xFF00 + registers.c) = registers.a;
+		write(0xFF00 + registers.c, registers.a);
 		break;
 
 	// ldh [imm8], a
 	case 0xE0:
-		access(0xFF00 + imm8()) = registers.a;
+		write(0xFF00 + imm8(), registers.a);
 		break;
 
 	// ld [imm16], a
 	case 0xEA:
-		access(imm16()) = registers.a;
+		write(imm16(), registers.a);
 		break;
 
 	// ldh a, [c]
 	case 0xF2:
-		registers.a = access(0xFF00 + registers.c);
+		registers.a = read(0xFF00 + registers.c);
 		break;
 
 	// ldh a, [imm8]
 	case 0xF0:
-		registers.a = access(0xFF00 + imm8());
+		registers.a = read(0xFF00 + imm8());
 		break;
 
 	// ld a, [imm16]
 	case 0xFA:
-		registers.a = access(imm16());
+		registers.a = read(imm16());
 		break;
 
 	// add sp, imm8
@@ -1113,7 +1135,7 @@ void CPU::step()
 		setNegativeFlag(false);
 		setHalfCarryFlag((registers.sp & 0x0F) + (offset & 0x0F) > 0x0F);
 		setCarryFlag((registers.sp & 0xFF) + (offset & 0xFF) > 0xFF);
-		setr16(registers.sp, static_cast<u16>(result));
+		set_r16(registers.sp, static_cast<u16>(result));
 		break;
 	}
 
@@ -1125,13 +1147,13 @@ void CPU::step()
 		setNegativeFlag(false);
 		setHalfCarryFlag((registers.sp & 0x0F) + (offset & 0x0F) > 0x0F);
 		setCarryFlag((registers.sp & 0xFF) + (offset & 0xFF) > 0xFF);
-		setr16(registers.hl, static_cast<u16>(result));
+		set_r16(registers.hl, static_cast<u16>(result));
 		break;
 	}
 
 	// ld sp, hl
 	case 0xF9:
-		setr16(registers.sp, registers.hl);
+		set_r16(registers.sp, registers.hl);
 		break;
 
 	// di
@@ -1141,7 +1163,7 @@ void CPU::step()
 
 	// ei
 	case 0xFB:
-		ime = 1;
+		enable_interrupt_delay = true;
 		break;
 
 	default: {
@@ -1150,5 +1172,29 @@ void CPU::step()
 		   << (int)opcode;
 		throw std::runtime_error(ss.str());
 	}
+	}
+}
+
+u8 CPU::readIO(u16 address)
+{
+	switch (address) {
+	case 0xff0f:
+		return interrupt_flags;
+	case 0xffff:
+		return interrupt_enable;
+	default:
+		return 0xff;
+	}
+}
+
+void CPU::writeIO(u16 address, u8 value)
+{
+	switch (address) {
+	case 0xff0f:
+		interrupt_flags = value;
+		break;
+	case 0xffff:
+		interrupt_enable = value;
+		break;
 	}
 }

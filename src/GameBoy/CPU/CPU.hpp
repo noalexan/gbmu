@@ -10,11 +10,12 @@ class GameBoy;
 class CPU {
 private:
 	GameBoy &gameboy;
-	int      ticks            = 0;
+	int      ticks = 0;
 
-	u8       interrupt_flags  = 0;
-	u8       interrupt_enable = 0;
-	u8       ime = 0;
+	u8   interrupt_flags        = 0;
+	u8   interrupt_enable       = 0;
+	u8   ime                    = 0;
+	bool enable_interrupt_delay = false;
 
 	bool halted = false;
 
@@ -41,18 +42,19 @@ private:
 		u16 pc;
 	} registers;
 
-	u8 &access(u16 address);
+	u8   read(u16 address);
+	void write(u16 address, u8 value);
 
-	inline u8  imm8() { return access(registers.pc++); }
+	inline u8  imm8() { return read(registers.pc++); }
 	inline u16 imm16() { return imm8() | (imm8() << 8); }
 
-	inline void setr16(u16 &r16, u16 address)
+	inline void set_r16(u16 &r16, u16 address)
 	{
 		ticks += TICKS_PER_CYLCES;
 		r16 = address;
 	}
 
-	inline u8 &r8(u8 code)
+	inline u8 read_r8(u8 code)
 	{
 		switch (code & 0b111) {
 		case 0b000:
@@ -68,9 +70,39 @@ private:
 		case 0b101:
 			return registers.l;
 		case 0b110:
-			return access(registers.hl);
+			return read(registers.hl);
 		default:
 			return registers.a;
+		}
+	}
+
+	inline void write_r8(u8 code, u8 value)
+	{
+		switch (code & 0b111) {
+		case 0b000:
+			registers.b = value;
+			break;
+		case 0b001:
+			registers.c = value;
+			break;
+		case 0b010:
+			registers.d = value;
+			break;
+		case 0b011:
+			registers.e = value;
+			break;
+		case 0b100:
+			registers.h = value;
+			break;
+		case 0b101:
+			registers.l = value;
+			break;
+		case 0b110:
+			write(registers.hl, value);
+			break;
+		default:
+			registers.a = value;
+			break;
 		}
 	}
 
@@ -88,17 +120,35 @@ private:
 		}
 	}
 
-	inline u8 &r16mem(u8 code)
+	inline u8 read_r16mem(u8 code)
 	{
 		switch (code & 0b11) {
 		case 0b00:
-			return access(registers.bc);
+			return read(registers.bc);
 		case 0b01:
-			return access(registers.de);
+			return read(registers.de);
 		case 0b10:
-			return access(registers.hl++);
+			return read(registers.hl++);
 		default:
-			return access(registers.hl--);
+			return read(registers.hl--);
+		}
+	}
+
+	inline void write_r16mem(u8 code, u8 value)
+	{
+		switch (code & 0b11) {
+		case 0b00:
+			write(registers.bc, value);
+			break;
+		case 0b01:
+			write(registers.de, value);
+			break;
+		case 0b10:
+			write(registers.hl++, value);
+			break;
+		default:
+			write(registers.hl--, value);
+			break;
 		}
 	}
 
@@ -132,9 +182,9 @@ private:
 
 	inline u8 b3(u8 value) { return (1 << (value & 0b111)); }
 
-	inline void push(u8 value) { access(--registers.sp) = value; }
+	inline void push(u8 value) { write(--registers.sp, value); }
 
-	inline u8 &pop() { return access(registers.sp++); }
+	inline u8 pop() { return read(registers.sp++); }
 
 	inline bool getZeroFlag() const { return registers.f & ZERO; }
 	inline bool getNegativeFlag() const { return registers.f & NEGATIVE; }
@@ -164,18 +214,21 @@ private:
 public:
 	CPU(GameBoy &);
 	virtual ~CPU();
-	void step();
+	void tick();
 
 	u8 &getInterruptFlags() { return interrupt_flags; }
 	u8 &getInterruptEnable() { return interrupt_enable; }
 
 	enum Interrupt {
 		VBLANK = 1 << 0,
-		LCD = 1 << 1,
-		TIMER = 1 << 2,
+		LCD    = 1 << 1,
+		TIMER  = 1 << 2,
 		SERIAL = 1 << 3,
 		JOYPAD = 1 << 4
 	};
 
 	void requestInterrupt(enum Interrupt interrupt) { interrupt_flags |= interrupt; }
+
+	u8   readIO(u16 address);
+	void writeIO(u16 address, u8 value);
 };

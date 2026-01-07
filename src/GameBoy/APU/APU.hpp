@@ -7,6 +7,7 @@ class GameBoy;
 
 class APU {
 private:
+	GameBoy          &gameboy;
 	SDL_AudioDeviceID audio_device;
 
 	static void audioCallback(void *userdata, u8 *stream, int len);
@@ -109,8 +110,11 @@ private:
 	u8 &nr52; // Sound on/off
 
 public:
-	APU();
+	APU(GameBoy &);
 	virtual ~APU();
+
+	u8   read(u16 address);
+	void write(u16 address, u8 value);
 
 	u8 registers[0x17];
 	u8 wave_pattern[0x10];

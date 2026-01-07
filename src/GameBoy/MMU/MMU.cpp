@@ -6,34 +6,51 @@
 
 MMU::MMU(GameBoy &gb) : gameboy(gb)
 {
-	ram.fill(nullptr);
+	read_handlers.fill(nullptr);
+	write_handlers.fill(nullptr);
 
-	register_address_range(0x0000, 0x3fff, gameboy.getCartridge().getRomData());
-	register_address_range(0x4000, 0x7fff, gameboy.getCartridge().getRomData() + 0x4000);
-	register_address_range(0x8000, 0x9fff, gameboy.getPPU().vram);
-	register_address_range(0xa000, 0xbfff, eram);
-	register_address_range(0xc000, 0xcfff, wram);
-	register_address_range(0xd000, 0xdfff, wram + 0x1000);
-	register_address_range(0xe000, 0xefff, wram);
-	register_address_range(0xf000, 0xfdff, wram + 0x1000);
-	register_address_range(0xfe00, 0xfe9f, gameboy.getPPU().oam);
-	register_address_range(0xfea0, 0xfeff, unusable);
-	register_address(0xff00, &gameboy.getJoypad().getInput());
-	register_address(0xff01, &gameboy.getSerial().getSerialData());
-	register_address(0xff02, &gameboy.getSerial().getSerialControl());
-	register_address_range(0xff04, 0xff07, gameboy.getTimer().registers);
-	register_address(0xff0f, &gameboy.getCPU().getInterruptFlags());
-	register_address_range(0xff10, 0xff26, gameboy.getAPU().registers);
-	register_address_range(0xff30, 0xff3f, gameboy.getAPU().wave_pattern);
-	register_address_range(0xff40, 0xff4b, gameboy.getPPU().registers);
-	register_address(0xff50, &bios_disabled);
-	register_address_range(0xff80, 0xfffe, hram);
-	register_address(0xffff, &gameboy.getCPU().getInterruptEnable());
+	for (u16 addr = 0x0000; addr <= 0x7fff; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return gameboy.getCartridge().read(addr); },
+		    [this, addr](u8 value) { gameboy.getCartridge().write(addr, value); });
+	}
+	for (u16 addr = 0xa000; addr <= 0xbfff; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return gameboy.getCartridge().read(addr); },
+		    [this, addr](u8 value) { gameboy.getCartridge().write(addr, value); });
+	}
+	for (u16 addr = 0xc000; addr <= 0xcfff; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return wram[addr - 0xc000]; },
+		    [this, addr](u8 value) { wram[addr - 0xc000] = value; });
+	}
+	for (u16 addr = 0xd000; addr <= 0xdfff; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return wram[addr - 0xc000]; },
+		    [this, addr](u8 value) { wram[addr - 0xc000] = value; });
+	}
+	for (u16 addr = 0xe000; addr <= 0xefff; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return wram[addr - 0xe000]; },
+		    [this, addr](u8 value) { wram[addr - 0xe000] = value; });
+	}
+	for (u16 addr = 0xf000; addr <= 0xfdff; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return wram[addr - 0xe000]; },
+		    [this, addr](u8 value) { wram[addr - 0xe000] = value; });
+	}
+	register_handler(
+	    0xff50, [this]() { return bios_disabled; }, [this](u8 value) { bios_disabled = value; });
+	for (u16 addr = 0xff80; addr <= 0xfffe; addr++) {
+		register_handler(
+		    addr, [this, addr]() { return hram[addr - 0xff80]; },
+		    [this, addr](u8 value) { hram[addr - 0xff80] = value; });
+	}
 }
 
 MMU::~MMU() {}
 
-u8 &MMU::access(u16 address)
+u8 MMU::read(u16 address)
 {
 #ifndef NDEBUG
 	std::cout << "\033[1;36m" << "MMU access to address: 0x" << std::hex << std::setw(4)
@@ -43,12 +60,31 @@ u8 &MMU::access(u16 address)
 	if (address < 0x100 && bios_disabled == 0)
 		return dmg_bios[address];
 
-	if (ram[address] == nullptr) {
-		std::stringstream ss;
-		ss << "MMU access not implemented for address: 0x" << std::hex << std::setw(4)
-		   << std::setfill('0') << address;
-		throw std::runtime_error(ss.str());
+	if (read_handlers[address]) {
+		return read_handlers[address]();
 	}
 
-	return *ram[address];
+	return 0xff;
+}
+
+void MMU::write(u16 address, u8 value)
+{
+	if (write_handlers[address]) {
+		write_handlers[address](value);
+	}
+}
+
+void MMU::register_handler(u16 address, ReadHandler read_handler, WriteHandler write_handler)
+{
+	read_handlers[address]  = read_handler;
+	write_handlers[address] = write_handler;
+}
+
+void MMU::register_handler_range(u16 start, u16 end, ReadHandler read_handler,
+                                 WriteHandler write_handler)
+{
+	for (u16 addr = start; addr <= end; addr++) {
+		read_handlers[addr]  = read_handler;
+		write_handlers[addr] = write_handler;
+	}
 }
