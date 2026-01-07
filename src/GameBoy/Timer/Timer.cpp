@@ -1,7 +1,7 @@
 #include "Timer.hpp"
 #include "../GameBoy.hpp"
 
-Timer::Timer(GameBoy &gb) : gameboy(gb), tima(registers[1]), tma(registers[2]), tac(registers[3])
+Timer::Timer(GameBoy &gb) : gameboy(gb)
 {
 	for (u16 addr = 0xff04; addr <= 0xff07; addr++) {
 		gameboy.getMMU().register_handler(
@@ -17,8 +17,14 @@ u8 Timer::read(u16 address)
 	switch (address) {
 	case 0xff04:
 		return (div_counter >> 8) & 0xff;
+	case 0xff05:
+		return tima;
+	case 0xff06:
+		return tma;
+	case 0xff07:
+		return tac;
 	default:
-		return registers[address - 0xff04];
+		return 0;
 	}
 }
 
@@ -28,8 +34,14 @@ void Timer::write(u16 address, u8 value)
 	case 0xff04:
 		div_counter = 0;
 		break;
-	default:
-		registers[address - 0xff04] = value;
+	case 0xff05:
+		tima = value;
+		break;
+	case 0xff06:
+		tma = value;
+		break;
+	case 0xff07:
+		tac = value;
 		break;
 	}
 }
@@ -55,8 +67,7 @@ void Timer::tick()
 			break;
 		}
 
-		timer_counter++;
-		if (timer_counter >= threshold) {
+		if (++timer_counter >= threshold) {
 			timer_counter = 0;
 			if (++tima == 0) {
 				gameboy.getCPU().requestInterrupt(CPU::Interrupt::TIMER);

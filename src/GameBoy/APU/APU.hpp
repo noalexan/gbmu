@@ -79,35 +79,35 @@ private:
 	};
 
 	// Channel 1 - Tone & Sweep
-	u8 &nr10; // Sweep
-	u8 &nr11; // Length timer & duty cycle
-	u8 &nr12; // Volume & envelope
-	u8 &nr13; // Period low
-	u8 &nr14; // Period high & control
+	u8 nr10 = 0x80; // Sweep
+	u8 nr11 = 0xBF; // Length timer & duty cycle
+	u8 nr12 = 0xF3; // Volume & envelope
+	u8 nr13 = 0x00; // Period low
+	u8 nr14 = 0xBF; // Period high & control
 
 	// Channel 2 - Tone
-	u8 &nr21; // Length timer & duty cycle
-	u8 &nr22; // Volume & envelope
-	u8 &nr23; // Period low
-	u8 &nr24; // Period high & control
+	u8 nr21 = 0x3F; // Length timer & duty cycle
+	u8 nr22 = 0x00; // Volume & envelope
+	u8 nr23 = 0x00; // Period low
+	u8 nr24 = 0xBF; // Period high & control
 
 	// Channel 3 - Wave
-	u8 &nr30; // DAC enable
-	u8 &nr31; // Length timer
-	u8 &nr32; // Output level
-	u8 &nr33; // Period low
-	u8 &nr34; // Period high & control
+	u8 nr30 = 0x7F; // DAC enable
+	u8 nr31 = 0xFF; // Length timer
+	u8 nr32 = 0x9F; // Output level
+	u8 nr33 = 0x00; // Period low
+	u8 nr34 = 0xBF; // Period high & control
 
 	// Channel 4 - Noise
-	u8 &nr41; // Length timer
-	u8 &nr42; // Volume & envelope
-	u8 &nr43; // Frequency & randomness
-	u8 &nr44; // Control
+	u8 nr41 = 0xFF; // Length timer
+	u8 nr42 = 0x00; // Volume & envelope
+	u8 nr43 = 0x00; // Frequency & randomness
+	u8 nr44 = 0xBF; // Control
 
 	// Control registers
-	u8 &nr50; // Master volume & VIN panning
-	u8 &nr51; // Sound panning
-	u8 &nr52; // Sound on/off
+	u8 nr50 = 0x77; // Master volume & VIN panning
+	u8 nr51 = 0xF3; // Sound panning
+	u8 nr52 = 0xF1; // Sound on/off
 
 public:
 	APU(GameBoy &);
@@ -116,6 +116,5 @@ public:
 	u8   read(u16 address);
 	void write(u16 address, u8 value);
 
-	u8 registers[0x17];
 	u8 wave_pattern[0x10];
 };

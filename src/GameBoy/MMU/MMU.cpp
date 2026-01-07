@@ -46,17 +46,14 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 		    addr, [this, addr]() { return hram[addr - 0xff80]; },
 		    [this, addr](u8 value) { hram[addr - 0xff80] = value; });
 	}
+
+	bios_disabled = 0x01;
 }
 
 MMU::~MMU() {}
 
 u8 MMU::read(u16 address)
 {
-#ifndef NDEBUG
-	std::cout << "\033[1;36m" << "MMU access to address: 0x" << std::hex << std::setw(4)
-	          << std::setfill('0') << address << std::dec << "\033[0m" << std::endl;
-#endif
-
 	if (address < 0x100 && bios_disabled == 0)
 		return dmg_bios[address];
 

@@ -9,7 +9,7 @@ class Joypad {
 private:
 	GameBoy &gameboy;
 
-	u8 input = 0xff;
+	u8 input = 0xf;
 
 public:
 	Joypad(GameBoy &);

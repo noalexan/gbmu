@@ -140,13 +140,7 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 	}
 }
 
-APU::APU(GameBoy &gb)
-    : gameboy(gb), nr10(registers[0x00]), nr11(registers[0x01]), nr12(registers[0x02]),
-      nr13(registers[0x03]), nr14(registers[0x04]), nr21(registers[0x06]), nr22(registers[0x07]),
-      nr23(registers[0x08]), nr24(registers[0x09]), nr30(registers[0x0A]), nr31(registers[0x0B]),
-      nr32(registers[0x0C]), nr33(registers[0x0D]), nr34(registers[0x0E]), nr41(registers[0x10]),
-      nr42(registers[0x11]), nr43(registers[0x12]), nr44(registers[0x13]), nr50(registers[0x14]),
-      nr51(registers[0x15]), nr52(registers[0x16])
+APU::APU(GameBoy &gb) : gameboy(gb)
 {
 	SDL_Init(SDL_INIT_AUDIO);
 
@@ -187,7 +181,52 @@ APU::~APU()
 u8 APU::read(u16 address)
 {
 	if (address >= 0xff10 && address <= 0xff26) {
-		return registers[address - 0xff10];
+		switch (address) {
+		case 0xff10:
+			return nr10;
+		case 0xff11:
+			return nr11;
+		case 0xff12:
+			return nr12;
+		case 0xff13:
+			return nr13;
+		case 0xff14:
+			return nr14;
+		case 0xff16:
+			return nr21;
+		case 0xff17:
+			return nr22;
+		case 0xff18:
+			return nr23;
+		case 0xff19:
+			return nr24;
+		case 0xff1a:
+			return nr30;
+		case 0xff1b:
+			return nr31;
+		case 0xff1c:
+			return nr32;
+		case 0xff1d:
+			return nr33;
+		case 0xff1e:
+			return nr34;
+		case 0xff20:
+			return nr41;
+		case 0xff21:
+			return nr42;
+		case 0xff22:
+			return nr43;
+		case 0xff23:
+			return nr44;
+		case 0xff24:
+			return nr50;
+		case 0xff25:
+			return nr51;
+		case 0xff26:
+			return nr52;
+		default:
+			return 0xff;
+		}
 	} else if (address >= 0xff30 && address <= 0xff3f) {
 		return wave_pattern[address - 0xff30];
 	}
@@ -197,7 +236,71 @@ u8 APU::read(u16 address)
 void APU::write(u16 address, u8 value)
 {
 	if (address >= 0xff10 && address <= 0xff26) {
-		registers[address - 0xff10] = value;
+		switch (address) {
+		case 0xff10:
+			nr10 = value;
+			break;
+		case 0xff11:
+			nr11 = value;
+			break;
+		case 0xff12:
+			nr12 = value;
+			break;
+		case 0xff13:
+			nr13 = value;
+			break;
+		case 0xff14:
+			nr14 = value;
+			break;
+		case 0xff16:
+			nr21 = value;
+			break;
+		case 0xff17:
+			nr22 = value;
+			break;
+		case 0xff18:
+			nr23 = value;
+			break;
+		case 0xff19:
+			nr24 = value;
+			break;
+		case 0xff1a:
+			nr30 = value;
+			break;
+		case 0xff1b:
+			nr31 = value;
+			break;
+		case 0xff1c:
+			nr32 = value;
+			break;
+		case 0xff1d:
+			nr33 = value;
+			break;
+		case 0xff1e:
+			nr34 = value;
+			break;
+		case 0xff20:
+			nr41 = value;
+			break;
+		case 0xff21:
+			nr42 = value;
+			break;
+		case 0xff22:
+			nr43 = value;
+			break;
+		case 0xff23:
+			nr44 = value;
+			break;
+		case 0xff24:
+			nr50 = value;
+			break;
+		case 0xff25:
+			nr51 = value;
+			break;
+		case 0xff26:
+			nr52 = value;
+			break;
+		}
 	} else if (address >= 0xff30 && address <= 0xff3f) {
 		wave_pattern[address - 0xff30] = value;
 	}

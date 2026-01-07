@@ -11,7 +11,7 @@ GameBoy::GameBoy(const std::string &filename)
       timer(*this), joypad(*this)
 {
 	// Print cartridge info
-	std::cout << "\033[1;33m" << cartridge.getTitle() << "\033[0m" << std::endl
+	std::cerr << "\033[1;33m" << cartridge.getTitle() << "\033[0m" << std::endl
 	          << "  Type: " << cartridge.getCartridgeTypeString() << std::endl
 	          << "  ROM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')
 	          << (int)cartridge.getRomSize() << std::dec << " ("

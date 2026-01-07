@@ -4,13 +4,9 @@
 
 static const u32 PALETTE_COLORS[4] = {0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF};
 
-PPU::PPU(GameBoy &_gb)
-    : gb(_gb), lcdc(registers[0]), stat(registers[1]), scy(registers[2]), scx(registers[3]),
-      ly(registers[4]), lyc(registers[5]), dma(registers[6]), bgp(registers[7]), obp0(registers[8]),
-      obp1(registers[9]), wy(registers[10]), wx(registers[11])
+PPU::PPU(GameBoy &_gb) : gb(_gb)
 {
 	std::fill(std::begin(vram), std::end(vram), 0);
-	std::fill(std::begin(registers), std::end(registers), 0);
 	std::fill(std::begin(oam), std::end(oam), 0);
 
 	SDL_Init(SDL_INIT_VIDEO);
@@ -151,7 +147,32 @@ u8 PPU::read(u16 address)
 	} else if (address >= 0xfe00 && address <= 0xfe9f) {
 		return oam[address - 0xfe00];
 	} else if (address >= 0xff40 && address <= 0xff4b) {
-		return registers[address - 0xff40];
+		switch (address) {
+		case 0xff40:
+			return lcdc;
+		case 0xff41:
+			return stat;
+		case 0xff42:
+			return scy;
+		case 0xff43:
+			return scx;
+		case 0xff44:
+			return ly;
+		case 0xff45:
+			return lyc;
+		case 0xff46:
+			return dma;
+		case 0xff47:
+			return bgp;
+		case 0xff48:
+			return obp0;
+		case 0xff49:
+			return obp1;
+		case 0xff4a:
+			return wy;
+		case 0xff4b:
+			return wx;
+		}
 	}
 	return 0xff;
 }
@@ -163,6 +184,43 @@ void PPU::write(u16 address, u8 value)
 	} else if (address >= 0xfe00 && address <= 0xfe9f) {
 		oam[address - 0xfe00] = value;
 	} else if (address >= 0xff40 && address <= 0xff4b) {
-		registers[address - 0xff40] = value;
+		switch (address) {
+		case 0xff40:
+			lcdc = value;
+			break;
+		case 0xff41:
+			stat = value;
+			break;
+		case 0xff42:
+			scy = value;
+			break;
+		case 0xff43:
+			scx = value;
+			break;
+		case 0xff44:
+			ly = value;
+			break;
+		case 0xff45:
+			lyc = value;
+			break;
+		case 0xff46:
+			dma = value;
+			break;
+		case 0xff47:
+			bgp = value;
+			break;
+		case 0xff48:
+			obp0 = value;
+			break;
+		case 0xff49:
+			obp1 = value;
+			break;
+		case 0xff4a:
+			wy = value;
+			break;
+		case 0xff4b:
+			wx = value;
+			break;
+		}
 	}
 }

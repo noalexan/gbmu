@@ -7,6 +7,19 @@
 
 CPU::CPU(GameBoy &gb) : gameboy(gb), registers{}
 {
+	registers.af = 0x01B0;
+	registers.bc = 0x0013;
+	registers.de = 0x00D8;
+	registers.hl = 0x014D;
+	registers.sp = 0xFFFE;
+	registers.pc = 0x0100;
+
+	interrupt_flags        = 0x00;
+	interrupt_enable       = 0x00;
+	ime                    = 0;
+	enable_interrupt_delay = false;
+	halted                 = false;
+
 	gameboy.getMMU().register_handler(
 	    0xff0f, [this]() { return this->readIO(0xff0f); },
 	    [this](u8 value) { this->writeIO(0xff0f, value); });
