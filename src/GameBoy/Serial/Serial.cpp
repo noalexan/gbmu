@@ -4,11 +4,10 @@
 
 Serial::Serial(GameBoy &gb) : gameboy(gb)
 {
-	for (u16 addr = 0xff01; addr <= 0xff02; addr++) {
-		gameboy.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
+	gameboy.getMMU().register_handler_range(
+	    0xff01, 0xff02,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
 }
 
 Serial::~Serial() {}

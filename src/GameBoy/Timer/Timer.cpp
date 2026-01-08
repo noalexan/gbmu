@@ -3,11 +3,10 @@
 
 Timer::Timer(GameBoy &gb) : gameboy(gb)
 {
-	for (u16 addr = 0xff04; addr <= 0xff07; addr++) {
-		gameboy.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
+	gameboy.getMMU().register_handler_range(
+	    0xff04, 0xff07,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
 }
 
 Timer::~Timer() {}

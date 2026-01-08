@@ -17,7 +17,8 @@ private:
 	SDL_Texture  *texture  = nullptr;
 	u32           framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
-	enum Mode { HBLANK = 0, VBLANK = 1, OAM_SEARCH = 2, PIXEL_TRANSFER = 3 } mode = OAM_SEARCH;
+	enum Mode { HBLANK = 0, VBLANK = 1, OAM_SEARCH = 2, PIXEL_TRANSFER = 3 };
+	enum Mode mode = OAM_SEARCH;
 
 	enum LCDC {
 		BG_ENABLE       = 1 << 0,

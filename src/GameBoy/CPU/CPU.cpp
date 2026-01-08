@@ -21,11 +21,11 @@ CPU::CPU(GameBoy &gb) : gameboy(gb), registers{}
 	halted                 = false;
 
 	gameboy.getMMU().register_handler(
-	    0xff0f, [this]() { return this->readIO(0xff0f); },
-	    [this](u8 value) { this->writeIO(0xff0f, value); });
+	    0xff0f, [this](u16) { return readIO(0xff0f); },
+	    [this](u16, u8 value) { writeIO(0xff0f, value); });
 	gameboy.getMMU().register_handler(
-	    0xffff, [this]() { return this->readIO(0xffff); },
-	    [this](u8 value) { this->writeIO(0xffff, value); });
+	    0xffff, [this](u16) { return readIO(0xffff); },
+	    [this](u16, u8 value) { writeIO(0xffff, value); });
 }
 
 CPU::~CPU() {}

@@ -159,16 +159,14 @@ APU::APU(GameBoy &gb) : gameboy(gb)
 		SDL_PauseAudioDevice(audio_device, 0);
 	}
 
-	for (u16 addr = 0xff10; addr <= 0xff26; addr++) {
-		gameboy.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
-	for (u16 addr = 0xff30; addr <= 0xff3f; addr++) {
-		gameboy.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
+	gameboy.getMMU().register_handler_range(
+	    0xff10, 0xff26,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
+	gameboy.getMMU().register_handler_range(
+	    0xff30, 0xff3f,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
 }
 
 APU::~APU()

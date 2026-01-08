@@ -10,8 +10,8 @@ class GameBoy;
 
 class MMU {
 public:
-	using ReadHandler  = std::function<u8()>;
-	using WriteHandler = std::function<void(u8)>;
+	using ReadHandler  = std::function<u8(u16)>;
+	using WriteHandler = std::function<void(u16, u8)>;
 
 private:
 	GameBoy &gameboy;

@@ -18,21 +18,18 @@ PPU::PPU(GameBoy &_gb) : gb(_gb)
 	texture  = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,
 	                             SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	for (u16 addr = 0x8000; addr <= 0x9fff; addr++) {
-		gb.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
-	for (u16 addr = 0xfe00; addr <= 0xfe9f; addr++) {
-		gb.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
-	for (u16 addr = 0xff40; addr <= 0xff4b; addr++) {
-		gb.getMMU().register_handler(
-		    addr, [this, addr]() { return this->read(addr); },
-		    [this, addr](u8 value) { this->write(addr, value); });
-	}
+	gb.getMMU().register_handler_range(
+	    0x8000, 0x9fff,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
+	gb.getMMU().register_handler_range(
+	    0xfe00, 0xfe9f,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
+	gb.getMMU().register_handler_range(
+	    0xff40, 0xff4b,
+	    [this](u16 addr) { return read(addr); },
+	    [this](u16 addr, u8 value) { write(addr, value); });
 }
 
 PPU::~PPU()
