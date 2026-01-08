@@ -1,5 +1,7 @@
 #include "GameBoy.hpp"
 #include <SDL2/SDL.h>
+#include <SDL_events.h>
+#include <SDL_scancode.h>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -34,8 +36,72 @@ void GameBoy::pollEvents()
 	while (running) {
 		SDL_Event event;
 		if (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT) {
+			switch (event.type) {
+			case SDL_QUIT:
 				running = false;
+				break;
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.scancode) {
+				case SDL_SCANCODE_W:
+					joypad.press(Joypad::Input::UP);
+					break;
+				case SDL_SCANCODE_A:
+					joypad.press(Joypad::Input::LEFT);
+					break;
+				case SDL_SCANCODE_S:
+					joypad.press(Joypad::Input::DOWN);
+					break;
+				case SDL_SCANCODE_D:
+					joypad.press(Joypad::Input::RIGHT);
+					break;
+				case SDL_SCANCODE_Q:
+					joypad.press(Joypad::Input::SELECT);
+					break;
+				case SDL_SCANCODE_E:
+					joypad.press(Joypad::Input::START);
+					break;
+				case SDL_SCANCODE_L:
+					joypad.press(Joypad::Input::A);
+					break;
+				case SDL_SCANCODE_SEMICOLON:
+					joypad.press(Joypad::Input::B);
+					break;
+				default:
+					break;
+				}
+				break;
+			case SDL_KEYUP:
+				switch (event.key.keysym.scancode) {
+				case SDL_SCANCODE_W:
+					joypad.release(Joypad::Input::UP);
+					break;
+				case SDL_SCANCODE_A:
+					joypad.release(Joypad::Input::LEFT);
+					break;
+				case SDL_SCANCODE_S:
+					joypad.release(Joypad::Input::DOWN);
+					break;
+				case SDL_SCANCODE_D:
+					joypad.release(Joypad::Input::RIGHT);
+					break;
+				case SDL_SCANCODE_Q:
+					joypad.release(Joypad::Input::SELECT);
+					break;
+				case SDL_SCANCODE_E:
+					joypad.release(Joypad::Input::START);
+					break;
+				case SDL_SCANCODE_L:
+					joypad.release(Joypad::Input::A);
+					break;
+				case SDL_SCANCODE_SEMICOLON:
+					joypad.release(Joypad::Input::B);
+					break;
+				default:
+					break;
+				}
+				break;
+			default:
+				break;
 			}
 		}
 	}
