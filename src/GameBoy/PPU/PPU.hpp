@@ -34,34 +34,34 @@ private:
 	int  cycles            = 0;
 	bool scanline_rendered = false;
 
-	u8 lcdc = 0x91; // LCDC - LCD Control
-	u8 stat = 0x00; // STAT - LCD Status
-	u8 scy  = 0x00; // SCY - Scroll Y
-	u8 scx  = 0x00; // SCX - Scroll X
-	u8 ly   = 0x00; // LY - LCD Y-Coordinate
-	u8 lyc  = 0x00; // LYC - LY Compare
-	u8 dma  = 0x00; // DMA - OAM DMA Transfer
-	u8 bgp  = 0xFC; // BGP - BG Palette Data
-	u8 obp0 = 0xFF; // OBP0 - Object Palette 0 Data
-	u8 obp1 = 0xFF; // OBP1 - Object Palette 1 Data
-	u8 wy   = 0x00; // WY - Window Y Position
-	u8 wx   = 0x00; // WX - Window X Position minus 7
+	u8   lcdc              = 0x91; // LCDC - LCD Control
+	u8   stat              = 0x00; // STAT - LCD Status
+	u8   scy               = 0x00; // SCY - Scroll Y
+	u8   scx               = 0x00; // SCX - Scroll X
+	u8   ly                = 0x00; // LY - LCD Y-Coordinate
+	u8   lyc               = 0x00; // LYC - LY Compare
+	u8   dma               = 0x00; // DMA - OAM DMA Transfer
+	u8   bgp               = 0xFC; // BGP - BG Palette Data
+	u8   obp0              = 0xFF; // OBP0 - Object Palette 0 Data
+	u8   obp1              = 0xFF; // OBP1 - Object Palette 1 Data
+	u8   wy                = 0x00; // WY - Window Y Position
+	u8   wx                = 0x00; // WX - Window X Position minus 7
 
 public:
 	PPU(GameBoy &);
 	virtual ~PPU();
 
-	void tick();
-	void render();
+	void          tick();
+	void          render();
 
-	u8   read(u16 address);
-	void write(u16 address, u8 value);
+	u8            read(u16 address);
+	void          write(u16 address, u8 value);
 
 	SDL_Window   *getWindow() const { return window; }
 	SDL_Renderer *getRenderer() const { return renderer; }
 	SDL_Texture  *getTexture() const { return texture; }
 	u32          *getFramebuffer() { return framebuffer; }
 
-	u8 vram[0x2000];
-	u8 oam[0xa0];
+	u8            vram[0x2000];
+	u8            oam[0xa0];
 };

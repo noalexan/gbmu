@@ -11,10 +11,16 @@ private:
 
 	enum P1 { BUTTONS = 1 << 5, DPAD = 1 << 4 };
 
-	u8 p1 = 0x00;
+	u8   p1     = 0x00;
 
-	bool start = false, select = false, b = false, a = false;
-	bool down = false, up = false, left = false, right = false;
+	bool start  = false;
+	bool select = false;
+	bool b      = false;
+	bool a      = false;
+	bool down   = false;
+	bool up     = false;
+	bool left   = false;
+	bool right  = false;
 
 public:
 	Joypad(GameBoy &);

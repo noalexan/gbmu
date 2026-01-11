@@ -19,16 +19,13 @@ PPU::PPU(GameBoy &_gb) : gb(_gb)
 	                             SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	gb.getMMU().register_handler_range(
-	    0x8000, 0x9fff,
-	    [this](u16 addr) { return read(addr); },
+	    0x8000, 0x9fff, [this](u16 addr) { return read(addr); },
 	    [this](u16 addr, u8 value) { write(addr, value); });
 	gb.getMMU().register_handler_range(
-	    0xfe00, 0xfe9f,
-	    [this](u16 addr) { return read(addr); },
+	    0xfe00, 0xfe9f, [this](u16 addr) { return read(addr); },
 	    [this](u16 addr, u8 value) { write(addr, value); });
 	gb.getMMU().register_handler_range(
-	    0xff40, 0xff4b,
-	    [this](u16 addr) { return read(addr); },
+	    0xff40, 0xff4b, [this](u16 addr) { return read(addr); },
 	    [this](u16 addr, u8 value) { write(addr, value); });
 }
 
@@ -61,35 +58,61 @@ void PPU::tick()
 
 	case PIXEL_TRANSFER:
 		if (!scanline_rendered) {
-			u32 *scanline_ptr = &framebuffer[ly * SCREEN_WIDTH];
+			u32 *scanline_ptr        = framebuffer + ly * SCREEN_WIDTH;
 
-			u8  *bg_tile_map         = (lcdc & LCDC::BG_TILE_MAP) ? &vram[0x1C00] : &vram[0x1800];
+			u8  *bg_tile_map         = vram + ((lcdc & LCDC::BG_TILE_MAP) ? 0x1C00 : 0x1800);
+			u8  *win_tile_map        = vram + ((lcdc & LCDC::WINDOW_TILE_MAP) ? 0x1C00 : 0x1800);
 			bool use_signed_indexing = !(lcdc & LCDC::BG_TILE_DATA);
 
-			u8  scrolled_y = ly + scy;
-			u16 tile_row   = (scrolled_y >> 3) << 5;
-			u8  line       = scrolled_y & 0x07;
+			u8   scrolled_y          = ly + scy;
+			u16  tile_row            = (scrolled_y >> 3) << 5;
+			u8   line                = scrolled_y & 0x07;
 
 			for (u8 x = 0; x < SCREEN_WIDTH; x++) {
-				u8 scrolled_x  = x + scx;
-				u8 tile_column = scrolled_x >> 3;
-				u8 tile_index  = bg_tile_map[tile_row + tile_column];
+				u8  scrolled_x  = x + scx;
+
+				u8  tile_column = scrolled_x >> 3;
+				u8  tile_index  = bg_tile_map[tile_row + tile_column];
 
 				u16 tile_address;
-				if (use_signed_indexing) {
+				if (use_signed_indexing)
 					tile_address = 0x1000 + static_cast<s8>(tile_index) * 16;
-				} else {
+				else
 					tile_address = tile_index * 16;
-				}
 
-				u8 byte1 = vram[tile_address + (line << 1)];
-				u8 byte2 = vram[tile_address + (line << 1) + 1];
+				u8 byte1         = vram[tile_address + (line << 1)];
+				u8 byte2         = vram[tile_address + (line << 1) + 1];
 
-				u8 bit         = 7 - (scrolled_x & 0x07);
-				u8 color_index = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
+				u8 bit           = 7 - (scrolled_x & 0x07);
+				u8 color_index   = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
 
-				u8 palette_color = (bgp >> (color_index * 2)) & 0x03;
+				u8 palette_color = (bgp >> (color_index << 1)) & 0x03;
 				scanline_ptr[x]  = PALETTE_COLORS[palette_color];
+
+				if (lcdc & LCDC::WINDOW_ENABLE && ly >= wy && x + 7 >= wx) {
+					u8  win_y           = ly - wy;
+					u8  win_x           = x + 7 - wx;
+
+					u16 win_tile_row    = (win_y >> 3) << 5;
+					u8  win_tile_column = win_x >> 3;
+					u8  win_tile_index  = win_tile_map[win_tile_row + win_tile_column];
+
+					u16 win_tile_address;
+					if (use_signed_indexing)
+						win_tile_address = 0x1000 + static_cast<s8>(win_tile_index) * 16;
+					else
+						win_tile_address = win_tile_index * 16;
+
+					u8 win_byte1 = vram[win_tile_address + (win_y & 0x07) * 2];
+					u8 win_byte2 = vram[win_tile_address + (win_y & 0x07) * 2 + 1];
+
+					u8 win_bit   = 7 - (win_x & 0x07);
+					u8 win_color_index =
+					    ((win_byte2 >> win_bit) & 1) << 1 | ((win_byte1 >> win_bit) & 1);
+
+					u8 win_palette_color = (bgp >> (win_color_index << 1)) & 0x03;
+					scanline_ptr[x]      = PALETTE_COLORS[win_palette_color];
+				}
 			}
 
 			scanline_rendered = true;

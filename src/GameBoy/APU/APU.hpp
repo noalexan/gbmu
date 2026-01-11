@@ -10,7 +10,7 @@ private:
 	GameBoy          &gameboy;
 	SDL_AudioDeviceID audio_device;
 
-	static void audioCallback(void *userdata, u8 *stream, int len);
+	static void       audioCallback(void *userdata, u8 *stream, int len);
 
 	enum NR10 {
 		SWEEP_SHIFT     = 0x07,   // Sweep shift (0-7)
@@ -82,7 +82,7 @@ private:
 	u8 nr10 = 0x80; // Sweep
 	u8 nr11 = 0xBF; // Length timer & duty cycle
 	u8 nr12 = 0xF3; // Volume & envelope
-	u8 nr13 = 0x00; // Period low
+	u8 nr13 = 0xff; // Period low
 	u8 nr14 = 0xBF; // Period high & control
 
 	// Channel 2 - Tone
@@ -116,5 +116,5 @@ public:
 	u8   read(u16 address);
 	void write(u16 address, u8 value);
 
-	u8 wave_pattern[0x10];
+	u8   wave_pattern[0x10];
 };

@@ -10,34 +10,28 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 	write_handlers.fill(nullptr);
 
 	register_handler_range(
-	    0x0000, 0x7fff,
-	    [this](u16 addr) { return gameboy.getCartridge().read(addr); },
+	    0x0000, 0x7fff, [this](u16 addr) { return gameboy.getCartridge().read(addr); },
 	    [this](u16 addr, u8 value) { gameboy.getCartridge().write(addr, value); });
 	register_handler_range(
-	    0xa000, 0xbfff,
-	    [this](u16 addr) { return gameboy.getCartridge().read(addr); },
+	    0xa000, 0xbfff, [this](u16 addr) { return gameboy.getCartridge().read(addr); },
 	    [this](u16 addr, u8 value) { gameboy.getCartridge().write(addr, value); });
 	register_handler_range(
-	    0xc000, 0xcfff,
-	    [this](u16 addr) { return wram[addr - 0xc000]; },
+	    0xc000, 0xcfff, [this](u16 addr) { return wram[addr - 0xc000]; },
 	    [this](u16 addr, u8 value) { wram[addr - 0xc000] = value; });
 	register_handler_range(
-	    0xd000, 0xdfff,
-	    [this](u16 addr) { return wram[addr - 0xc000]; },
+	    0xd000, 0xdfff, [this](u16 addr) { return wram[addr - 0xc000]; },
 	    [this](u16 addr, u8 value) { wram[addr - 0xc000] = value; });
 	register_handler_range(
-	    0xe000, 0xefff,
-	    [this](u16 addr) { return wram[addr - 0xe000]; },
+	    0xe000, 0xefff, [this](u16 addr) { return wram[addr - 0xe000]; },
 	    [this](u16 addr, u8 value) { wram[addr - 0xe000] = value; });
 	register_handler_range(
-	    0xf000, 0xfdff,
-	    [this](u16 addr) { return wram[addr - 0xe000]; },
+	    0xf000, 0xfdff, [this](u16 addr) { return wram[addr - 0xe000]; },
 	    [this](u16 addr, u8 value) { wram[addr - 0xe000] = value; });
 	register_handler(
-	    0xff50, [this](u16) { return bios_disabled; }, [this](u16, u8 value) { bios_disabled = value; });
+	    0xff50, [this](u16) { return bios_disabled; },
+	    [this](u16, u8 value) { bios_disabled = value; });
 	register_handler_range(
-	    0xff80, 0xfffe,
-	    [this](u16 addr) { return hram[addr - 0xff80]; },
+	    0xff80, 0xfffe, [this](u16 addr) { return hram[addr - 0xff80]; },
 	    [this](u16 addr, u8 value) { hram[addr - 0xff80] = value; });
 
 	bios_disabled = 0x01;

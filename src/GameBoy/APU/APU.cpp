@@ -4,7 +4,7 @@
 
 void APU::audioCallback(void *userdata, u8 *stream, int len)
 {
-	APU *apu = static_cast<APU *>(userdata);
+	APU         *apu                  = static_cast<APU *>(userdata);
 
 	static float ch1_phase            = 0.0f;
 	static int   ch1_length_counter   = 0;
@@ -20,18 +20,18 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 		return;
 	}
 
-	s16 *samples = reinterpret_cast<s16 *>(stream);
-	int  count   = len / sizeof(s16) / 2;
+	s16               *samples        = reinterpret_cast<s16 *>(stream);
+	int                count          = len / sizeof(s16) / 2;
 
-	const float left_volume  = (float)(((apu->nr50 & LEFT_VOLUME) >> 4) + 1) / 8.0f;
-	const float right_volume = (float)((apu->nr50 & RIGHT_VOLUME) + 1) / 8.0f;
+	const float        left_volume    = (float)(((apu->nr50 & LEFT_VOLUME) >> 4) + 1) / 8.0f;
+	const float        right_volume   = (float)((apu->nr50 & RIGHT_VOLUME) + 1) / 8.0f;
 
 	static const float DUTY_CYCLES[4] = {0.125f, 0.25f, 0.5f, 0.75f};
 
-	const int SAMPLES_PER_FRAME_STEP = 44100 / 512;
+	const int          SAMPLES_PER_FRAME_STEP = 44100 / 512;
 
 	if (apu->nr14 & TRIGGER) {
-		ch1_phase = 0.0f;
+		ch1_phase  = 0.0f;
 		apu->nr52 |= CHANNEL_1_ON;
 		apu->nr14 &= ~TRIGGER;
 
@@ -59,14 +59,14 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 	}
 
 	if (apu->nr52 & CHANNEL_1_ON) {
-		u16   period         = ((apu->nr14 & PERIOD_HIGH_MASK) << 8) | apu->nr13;
-		float frequency      = 131072.0f / (float)(2048 - period);
-		float duty_threshold = DUTY_CYCLES[(apu->nr11 >> 6) & 0x03];
-		float period_samples = 44100.0f / frequency;
+		u16   period          = ((apu->nr14 & PERIOD_HIGH_MASK) << 8) | apu->nr13;
+		float frequency       = 131072.0f / (float)(2048 - period);
+		float duty_threshold  = DUTY_CYCLES[(apu->nr11 >> 6) & 0x03];
+		float period_samples  = 44100.0f / frequency;
 
-		int envelope_period = apu->nr12 & ENVELOPE_PERIOD;
-		int sweep_period    = (apu->nr10 & SWEEP_TIME_MASK) >> 4;
-		int sweep_shift     = apu->nr10 & SWEEP_SHIFT;
+		int   envelope_period = apu->nr12 & ENVELOPE_PERIOD;
+		int   sweep_period    = (apu->nr10 & SWEEP_TIME_MASK) >> 4;
+		int   sweep_shift     = apu->nr10 & SWEEP_SHIFT;
 
 		for (int i = 0; i < count; i++) {
 			if ((apu->nr14 & LENGTH_ENABLE) && ch1_length_counter > 0) {
@@ -115,9 +115,9 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 						apu->nr13            = new_period & 0xFF;
 						apu->nr14            = (apu->nr14 & 0xF8) | ((new_period >> 8) & 0x07);
 
-						period         = new_period;
-						frequency      = 131072.0f / (float)(2048 - period);
-						period_samples = 44100.0f / frequency;
+						period               = new_period;
+						frequency            = 131072.0f / (float)(2048 - period);
+						period_samples       = 44100.0f / frequency;
 					}
 
 					ch1_sweep_counter = sweep_period * SAMPLES_PER_FRAME_STEP;
@@ -154,18 +154,16 @@ APU::APU(GameBoy &gb) : gameboy(gb)
 	want.callback = audioCallback;
 	want.userdata = this;
 
-	audio_device = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
+	audio_device  = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
 	if (audio_device != 0) {
 		SDL_PauseAudioDevice(audio_device, 0);
 	}
 
 	gameboy.getMMU().register_handler_range(
-	    0xff10, 0xff26,
-	    [this](u16 addr) { return read(addr); },
+	    0xff10, 0xff26, [this](u16 addr) { return read(addr); },
 	    [this](u16 addr, u8 value) { write(addr, value); });
 	gameboy.getMMU().register_handler_range(
-	    0xff30, 0xff3f,
-	    [this](u16 addr) { return read(addr); },
+	    0xff30, 0xff3f, [this](u16 addr) { return read(addr); },
 	    [this](u16 addr, u8 value) { write(addr, value); });
 }
 

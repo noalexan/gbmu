@@ -14,25 +14,25 @@
 
 class GameBoy {
 private:
-	Cartridge cartridge;
-	MMU       mmu;
-	APU       apu;
-	PPU       ppu;
-	CPU       cpu;
-	Serial    serial;
-	Timer     timer;
-	Joypad    joypad;
+	Cartridge         cartridge;
+	MMU               mmu;
+	APU               apu;
+	PPU               ppu;
+	CPU               cpu;
+	Serial            serial;
+	Timer             timer;
+	Joypad            joypad;
 
 	std::thread       event_thread;
 	std::atomic<bool> running{false};
 
-	void pollEvents();
+	void              pollEvents();
 
 public:
 	GameBoy(const std::string &);
 	virtual ~GameBoy();
 
-	void run();
+	void       run();
 
 	APU       &getAPU() { return apu; }
 	PPU       &getPPU() { return ppu; }

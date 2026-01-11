@@ -112,7 +112,7 @@ void GameBoy::run()
 	running               = true;
 	const auto FRAME_TIME = std::chrono::milliseconds(16);
 
-	event_thread = std::thread(&GameBoy::pollEvents, this);
+	event_thread          = std::thread(&GameBoy::pollEvents, this);
 
 	while (running) {
 		auto frame_start = std::chrono::high_resolution_clock::now();

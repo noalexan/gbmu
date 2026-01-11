@@ -334,13 +334,13 @@ u16 Cartridge::getGlobalChecksum() const
 	return (rom_data[0x14E] << 8) | rom_data[0x14F];
 }
 
-u8 *Cartridge::getRomData() { return rom_data; }
+u8       *Cartridge::getRomData() { return rom_data; }
 
 const u8 *Cartridge::getRomData() const { return rom_data; }
 
-size_t Cartridge::getRomDataSize() const { return rom_size; }
+size_t    Cartridge::getRomDataSize() const { return rom_size; }
 
-u8 Cartridge::read(u16 address)
+u8        Cartridge::read(u16 address)
 {
 	if (address <= 0x3fff) {
 		return rom_data[address];
