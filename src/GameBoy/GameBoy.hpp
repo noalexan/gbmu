@@ -26,6 +26,8 @@ private:
 	std::thread       event_thread;
 	std::atomic<bool> running{false};
 
+	bool 						speedup{false};
+
 	void              pollEvents();
 
 public:

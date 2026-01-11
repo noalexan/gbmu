@@ -66,6 +66,8 @@ void GameBoy::pollEvents()
 				case SDL_SCANCODE_SEMICOLON:
 					joypad.press(Joypad::Input::B);
 					break;
+				case SDL_SCANCODE_SPACE:
+					speedup = true;
 				default:
 					break;
 				}
@@ -96,6 +98,8 @@ void GameBoy::pollEvents()
 				case SDL_SCANCODE_SEMICOLON:
 					joypad.release(Joypad::Input::B);
 					break;
+				case SDL_SCANCODE_SPACE:
+					speedup = false;
 				default:
 					break;
 				}
@@ -126,8 +130,8 @@ void GameBoy::run()
 		ppu.render();
 
 		auto frame_elapsed = std::chrono::high_resolution_clock::now() - frame_start;
-		if (frame_elapsed < FRAME_TIME) {
-			std::this_thread::sleep_for(FRAME_TIME - frame_elapsed);
+		if (frame_elapsed < (FRAME_TIME / (speedup ? 4 : 1))) {
+			std::this_thread::sleep_for((FRAME_TIME / (speedup ? 4 : 1)) - frame_elapsed);
 		}
 	}
 
