@@ -68,6 +68,7 @@ void GameBoy::pollEvents()
 					break;
 				case SDL_SCANCODE_SPACE:
 					speedup = true;
+					break;
 				default:
 					break;
 				}
@@ -100,6 +101,7 @@ void GameBoy::pollEvents()
 					break;
 				case SDL_SCANCODE_SPACE:
 					speedup = false;
+					break;
 				default:
 					break;
 				}
@@ -114,7 +116,7 @@ void GameBoy::pollEvents()
 void GameBoy::run()
 {
 	running               = true;
-	const auto FRAME_TIME = std::chrono::milliseconds(16);
+	const auto FRAME_TIME = std::chrono::milliseconds(16) / EMULATION_SPEED;
 
 	event_thread          = std::thread(&GameBoy::pollEvents, this);
 
@@ -130,8 +132,8 @@ void GameBoy::run()
 		ppu.render();
 
 		auto frame_elapsed = std::chrono::high_resolution_clock::now() - frame_start;
-		if (frame_elapsed < (FRAME_TIME / (speedup ? 4 : 1))) {
-			std::this_thread::sleep_for((FRAME_TIME / (speedup ? 4 : 1)) - frame_elapsed);
+		if (speedup == false && frame_elapsed < FRAME_TIME) {
+			std::this_thread::sleep_for(FRAME_TIME - frame_elapsed);
 		}
 	}
 

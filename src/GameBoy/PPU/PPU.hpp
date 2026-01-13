@@ -1,6 +1,8 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#include <array>
+#include <span>
 #include <types.h>
 
 #define SCREEN_WIDTH  160
@@ -11,11 +13,11 @@ class GameBoy;
 
 class PPU {
 private:
-	GameBoy      &gb;
-	SDL_Window   *window   = nullptr;
-	SDL_Renderer *renderer = nullptr;
-	SDL_Texture  *texture  = nullptr;
-	u32           framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT];
+	GameBoy                                      &gb;
+	SDL_Window                                   *window   = nullptr;
+	SDL_Renderer                                 *renderer = nullptr;
+	SDL_Texture                                  *texture  = nullptr;
+	std::array<u32, SCREEN_WIDTH * SCREEN_HEIGHT> framebuffer;
 
 	enum Mode { HBLANK = 0, VBLANK = 1, OAM_SEARCH = 2, PIXEL_TRANSFER = 3 };
 	enum Mode mode = OAM_SEARCH;
@@ -31,37 +33,48 @@ private:
 		PPU_ENABLE      = 1 << 7
 	};
 
-	int  cycles            = 0;
-	bool scanline_rendered = false;
+	int        cycles            = 0;
+	bool       scanline_rendered = false;
 
-	u8   lcdc              = 0x91; // LCDC - LCD Control
-	u8   stat              = 0x00; // STAT - LCD Status
-	u8   scy               = 0x00; // SCY - Scroll Y
-	u8   scx               = 0x00; // SCX - Scroll X
-	u8   ly                = 0x00; // LY - LCD Y-Coordinate
-	u8   lyc               = 0x00; // LYC - LY Compare
-	u8   dma               = 0x00; // DMA - OAM DMA Transfer
-	u8   bgp               = 0xFC; // BGP - BG Palette Data
-	u8   obp0              = 0xFF; // OBP0 - Object Palette 0 Data
-	u8   obp1              = 0xFF; // OBP1 - Object Palette 1 Data
-	u8   wy                = 0x00; // WY - Window Y Position
-	u8   wx                = 0x00; // WX - Window X Position minus 7
+	u8         lcdc              = 0x91; // LCDC - LCD Control
+	u8         stat              = 0x00; // STAT - LCD Status
+	u8         scy               = 0x00; // SCY - Scroll Y
+	u8         scx               = 0x00; // SCX - Scroll X
+	u8         ly                = 0x00; // LY - LCD Y-Coordinate
+	u8         lyc               = 0x00; // LYC - LY Compare
+	u8         dma               = 0x00; // DMA - OAM DMA Transfer
+	u8         bgp               = 0xFC; // BGP - BG Palette Data
+	u8         obp0              = 0xFF; // OBP0 - Object Palette 0 Data
+	u8         obp1              = 0xFF; // OBP1 - Object Palette 1 Data
+	u8         wy                = 0x00; // WY - Window Y Position
+	u8         wx                = 0x00; // WX - Window X Position minus 7
+
+	inline u16 compute_tile_address(u8 tile_index);
+
+	struct Sprite {
+		u8 y, x;
+		u8 index;
+		u8 attr;
+	} __attribute__((packed));
+
+	std::span<struct Sprite> sprites;
+
+	void                     perform_dma();
 
 public:
 	PPU(GameBoy &);
 	virtual ~PPU();
 
-	void          tick();
-	void          render();
+	void                   tick();
+	void                   render();
 
-	u8            read(u16 address);
-	void          write(u16 address, u8 value);
+	u8                     read(u16 address);
+	void                   write(u16 address, u8 value);
 
-	SDL_Window   *getWindow() const { return window; }
-	SDL_Renderer *getRenderer() const { return renderer; }
-	SDL_Texture  *getTexture() const { return texture; }
-	u32          *getFramebuffer() { return framebuffer; }
+	SDL_Window            *getWindow() const { return window; }
+	SDL_Renderer          *getRenderer() const { return renderer; }
+	SDL_Texture           *getTexture() const { return texture; }
 
-	u8            vram[0x2000];
-	u8            oam[0xa0];
+	std::array<u8, 0x2000> vram;
+	std::array<u8, 0xA0>   oam;
 };

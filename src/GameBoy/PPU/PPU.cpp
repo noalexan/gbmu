@@ -6,8 +6,8 @@ static const u32 PALETTE_COLORS[4] = {0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F38
 
 PPU::PPU(GameBoy &_gb) : gb(_gb)
 {
-	std::fill(std::begin(vram), std::end(vram), 0);
-	std::fill(std::begin(oam), std::end(oam), 0);
+	vram.fill(0);
+	oam.fill(0);
 
 	SDL_Init(SDL_INIT_VIDEO);
 	std::string title = "GBMU - " + gb.getCartridge().getTitle();
@@ -27,6 +27,8 @@ PPU::PPU(GameBoy &_gb) : gb(_gb)
 	gb.getMMU().register_handler_range(
 	    0xff40, 0xff4b, [this](u16 addr) { return read(addr); },
 	    [this](u16 addr, u8 value) { write(addr, value); });
+
+	sprites = std::span<struct Sprite>(reinterpret_cast<struct Sprite *>(oam.data()), 0x28);
 }
 
 PPU::~PPU()
@@ -37,6 +39,21 @@ PPU::~PPU()
 		SDL_DestroyRenderer(renderer);
 	if (window)
 		SDL_DestroyWindow(window);
+}
+
+void PPU::perform_dma()
+{
+	u16 base = static_cast<u16>(dma) << 8;
+	for (u8 &i : oam)
+		i = gb.getMMU().read(base++);
+}
+
+inline u16 PPU::compute_tile_address(u8 tile_index)
+{
+	if ((lcdc & LCDC::BG_TILE_DATA) == 0)
+		return 0x1000 + static_cast<s8>(tile_index) * 16;
+	else
+		return tile_index * 16;
 }
 
 void PPU::tick()
@@ -58,60 +75,84 @@ void PPU::tick()
 
 	case PIXEL_TRANSFER:
 		if (!scanline_rendered) {
-			u32 *scanline_ptr        = framebuffer + ly * SCREEN_WIDTH;
+			u32 *scanline_ptr  = &framebuffer[ly * SCREEN_WIDTH];
 
-			u8  *bg_tile_map         = vram + ((lcdc & LCDC::BG_TILE_MAP) ? 0x1C00 : 0x1800);
-			u8  *win_tile_map        = vram + ((lcdc & LCDC::WINDOW_TILE_MAP) ? 0x1C00 : 0x1800);
-			bool use_signed_indexing = !(lcdc & LCDC::BG_TILE_DATA);
+			u8  *bg_tile_map   = &vram[(lcdc & LCDC::BG_TILE_MAP) ? 0x1C00 : 0x1800];
+			u8  *win_tile_map  = &vram[(lcdc & LCDC::WINDOW_TILE_MAP) ? 0x1C00 : 0x1800];
 
-			u8   scrolled_y          = ly + scy;
-			u16  tile_row            = (scrolled_y >> 3) << 5;
-			u8   line                = scrolled_y & 0x07;
+			u8   bg_y          = ly + scy;
+			u16  bg_tile_row   = (bg_y >> 3) << 5;
+			u8   bg_line       = bg_y % 8;
+
+			u8   win_y         = ly - wy;
+			u16  win_tile_row  = (win_y >> 3) << 5;
+			u8   win_line      = win_y % 8;
+
+			bool obj_long_mode = lcdc & LCDC::OBJ_HEIGHT;
 
 			for (u8 x = 0; x < SCREEN_WIDTH; x++) {
-				u8  scrolled_x  = x + scx;
+				u8 color_index;
 
-				u8  tile_column = scrolled_x >> 3;
-				u8  tile_index  = bg_tile_map[tile_row + tile_column];
+				if (lcdc & LCDC::WINDOW_ENABLE && ly >= wy && x + 7 >= wx) {
+					/* Window */
+					u8  win_x        = x + 7 - wx;
 
-				u16 tile_address;
-				if (use_signed_indexing)
-					tile_address = 0x1000 + static_cast<s8>(tile_index) * 16;
-				else
-					tile_address = tile_index * 16;
+					u8  tile_column  = win_x >> 3;
+					u8  tile_index   = win_tile_map[win_tile_row + tile_column];
+					u16 tile_address = compute_tile_address(tile_index);
 
-				u8 byte1         = vram[tile_address + (line << 1)];
-				u8 byte2         = vram[tile_address + (line << 1) + 1];
+					u8  byte1        = vram[tile_address + win_line * 2];
+					u8  byte2        = vram[tile_address + win_line * 2 + 1];
 
-				u8 bit           = 7 - (scrolled_x & 0x07);
-				u8 color_index   = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
+					u8  bit          = 7 - (win_x % 8);
+					color_index      = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
+				}
+
+				else {
+					/* Background */
+					u8  bg_x         = x + scx;
+
+					u8  tile_column  = bg_x >> 3;
+					u8  tile_index   = bg_tile_map[bg_tile_row + tile_column];
+					u16 tile_address = compute_tile_address(tile_index);
+
+					u8  byte1        = vram[tile_address + bg_line * 2];
+					u8  byte2        = vram[tile_address + bg_line * 2 + 1];
+
+					u8  bit          = 7 - (bg_x % 8);
+					color_index      = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
+				}
 
 				u8 palette_color = (bgp >> (color_index << 1)) & 0x03;
 				scanline_ptr[x]  = PALETTE_COLORS[palette_color];
 
-				if (lcdc & LCDC::WINDOW_ENABLE && ly >= wy && x + 7 >= wx) {
-					u8  win_y           = ly - wy;
-					u8  win_x           = x + 7 - wx;
+				for (const struct Sprite &sprite : sprites) {
+					u8 sprite_y = ly + 16 - sprite.y;
+					u8 sprite_x = x + 8 - sprite.x;
 
-					u16 win_tile_row    = (win_y >> 3) << 5;
-					u8  win_tile_column = win_x >> 3;
-					u8  win_tile_index  = win_tile_map[win_tile_row + win_tile_column];
+					if (((sprite_y | sprite_x) & (obj_long_mode ? 0xF0 : 0xF8)) ||
+					    (sprite.attr & 0x80 && color_index))
+						continue;
 
-					u16 win_tile_address;
-					if (use_signed_indexing)
-						win_tile_address = 0x1000 + static_cast<s8>(win_tile_index) * 16;
-					else
-						win_tile_address = win_tile_index * 16;
+					u16 tile_address;
+					if (obj_long_mode) {
+						tile_address  = (sprite.index & 0xFE) * 16;
+						tile_address += ((sprite.attr & 0x40) ? (15 - sprite_y) : sprite_y) * 2;
+					} else {
+						tile_address  = sprite.index * 16;
+						tile_address += ((sprite.attr & 0x40) ? (7 - sprite_y) : sprite_y) * 2;
+					}
 
-					u8 win_byte1 = vram[win_tile_address + (win_y & 0x07) * 2];
-					u8 win_byte2 = vram[win_tile_address + (win_y & 0x07) * 2 + 1];
+					u8 byte1    = vram[tile_address];
+					u8 byte2    = vram[tile_address + 1];
 
-					u8 win_bit   = 7 - (win_x & 0x07);
-					u8 win_color_index =
-					    ((win_byte2 >> win_bit) & 1) << 1 | ((win_byte1 >> win_bit) & 1);
+					u8 bit      = (sprite.attr & 0x20) ? sprite_x : (7 - sprite_x);
 
-					u8 win_palette_color = (bgp >> (win_color_index << 1)) & 0x03;
-					scanline_ptr[x]      = PALETTE_COLORS[win_palette_color];
+					color_index = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
+					if (color_index) {
+						u8 palette_color = (obp0 >> (color_index << 1)) & 0x03;
+						scanline_ptr[x]  = PALETTE_COLORS[palette_color];
+					}
 				}
 			}
 
@@ -155,7 +196,7 @@ void PPU::tick()
 
 void PPU::render()
 {
-	SDL_UpdateTexture(texture, nullptr, framebuffer, SCREEN_WIDTH * 4);
+	SDL_UpdateTexture(texture, nullptr, framebuffer.data(), SCREEN_WIDTH * 4);
 	SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 	SDL_RenderPresent(renderer);
 }
@@ -225,6 +266,7 @@ void PPU::write(u16 address, u8 value)
 			break;
 		case 0xff46:
 			dma = value;
+			perform_dma();
 			break;
 		case 0xff47:
 			bgp = value;
