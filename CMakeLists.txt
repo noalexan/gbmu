@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
+find_package(OpenSSL REQUIRED)
+
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
@@ -22,4 +24,4 @@ add_executable(emulator
 	src/GameBoy/Joypad/Joypad.cpp
 )
 
-target_link_libraries(emulator ${SDL2_LIBRARIES})
+target_link_libraries(emulator ${SDL2_LIBRARIES} OpenSSL::Crypto)

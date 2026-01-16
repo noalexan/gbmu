@@ -3,10 +3,13 @@
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
+#include <openssl/md5.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <types.h>
 #include <unistd.h>
+
+const std::string Cartridge::saves_folder_path    = ".";
 
 const std::string Cartridge::CARTRIDGE_TYPES[256] = {"ROM ONLY",
                                                      "MBC1",
@@ -237,7 +240,7 @@ const std::string Cartridge::CARTRIDGE_TYPES[256] = {"ROM ONLY",
                                                      "HuC3",
                                                      "HuC1+RAM+BATTERY"};
 
-Cartridge::Cartridge(const std::string &filename) : rom_data(nullptr), rom_size(0)
+Cartridge::Cartridge(const std::string &filename)
 {
 	int fd = open(filename.c_str(), O_RDONLY);
 	if (fd < 0) {
@@ -250,41 +253,80 @@ Cartridge::Cartridge(const std::string &filename) : rom_data(nullptr), rom_size(
 		throw std::runtime_error(strerror(errno));
 	}
 
-	u8 *mapped = (u8 *)mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	u8 *mapped = reinterpret_cast<u8 *>(mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0));
 	if (mapped == MAP_FAILED) {
 		close(fd);
 		throw std::runtime_error(strerror(errno));
 	}
 
 	rom_size = sb.st_size;
-	rom_data = new u8[rom_size];
-	memcpy(rom_data, mapped, rom_size);
-	munmap(mapped, rom_size);
+	rom_data.resize(rom_size);
+
+	if (read(fd, rom_data.data(), rom_size) != rom_size) {
+		close(fd);
+		throw std::runtime_error(strerror(errno));
+	}
 
 	close(fd);
+
+	if ((ram_size = getRamDataSize())) {
+		char digest[16], digest_str[33] = {0};
+		MD5(rom_data.data(), rom_size, reinterpret_cast<u8 *>(digest));
+		for (int i = 0; i < 16; i++)
+			sprintf(digest_str + i * 2, "%.2x", digest[i]);
+
+		std::string save_file_path = saves_folder_path + '/' + digest_str;
+		std::cout << "Save file: " << save_file_path << std::endl;
+
+		fd = open(save_file_path.c_str(), O_RDWR | O_CREAT, 0644);
+		if (fd < 0) {
+			throw std::runtime_error(strerror(errno));
+		}
+
+		struct stat save_sb;
+		if (fstat(fd, &save_sb) == 0 && save_sb.st_size != ram_size) {
+			if (ftruncate(fd, ram_size) < 0) {
+				close(fd);
+				throw std::runtime_error(strerror(errno));
+			}
+		}
+
+		ram =
+		    reinterpret_cast<u8 *>(mmap(NULL, ram_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+		if (ram == MAP_FAILED) {
+			ram = nullptr;
+			close(fd);
+			throw std::runtime_error(strerror(errno));
+		}
+	}
 }
 
 Cartridge::~Cartridge()
 {
-	if (rom_data != nullptr) {
-		delete[] rom_data;
-	}
+	if (ram)
+		munmap(ram, ram_size);
 }
 
 std::string Cartridge::getTitle() const
 {
-	if (rom_size < 0x144 || rom_data == nullptr)
+	if (rom_size < 0x144 || rom_data.empty())
 		return "";
-	std::string result;
+
+	std::string title;
+
 	for (int i = 0; i < 16; i++) {
-		u8 ch = rom_data[0x134 + i];
-		if (ch == 0)
+		char c = rom_data[0x134 + i];
+
+		if ('A' > c || c > 'Z')
 			break;
-		result += (char)ch;
+
+		title += c;
 	}
-	while (!result.empty() && result.back() == ' ')
-		result.pop_back();
-	return result;
+
+	while (!title.empty() && title.back() == ' ')
+		title.pop_back();
+
+	return title;
 }
 
 u8 Cartridge::getCartridgeType() const
@@ -334,11 +376,13 @@ u16 Cartridge::getGlobalChecksum() const
 	return (rom_data[0x14E] << 8) | rom_data[0x14F];
 }
 
-u8       *Cartridge::getRomData() { return rom_data; }
+u8       *Cartridge::getRomData() { return rom_data.data(); }
 
-const u8 *Cartridge::getRomData() const { return rom_data; }
+const u8 *Cartridge::getRomData() const { return rom_data.data(); }
 
 size_t    Cartridge::getRomDataSize() const { return rom_size; }
+
+size_t    Cartridge::getRamDataSize() const { return getRamSize() * 0x2000; }
 
 u8        Cartridge::read_byte(u16 address)
 {

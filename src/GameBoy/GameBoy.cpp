@@ -18,7 +18,8 @@ GameBoy::GameBoy(const std::string &filename)
 	          << (int)cartridge.getRomSize() << std::dec << " ("
 	          << cartridge.getRomDataSize() / 1024 << " KB)" << std::endl
 	          << "  RAM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')
-	          << (int)cartridge.getRamSize() << std::dec << std::endl;
+	          << (int)cartridge.getRamSize() << std::dec << " ("
+	          << cartridge.getRamDataSize() / 1024 << " KB)" << std::endl;
 }
 
 GameBoy::~GameBoy()
