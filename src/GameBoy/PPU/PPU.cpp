@@ -64,11 +64,11 @@ void PPU::tick()
 
 	cycles++;
 
-	switch (mode) {
+	switch (stat & 0b11) {
 	case OAM_SEARCH:
 		if (cycles >= 80) {
 			cycles            = 0;
-			mode              = PIXEL_TRANSFER;
+			stat              = (stat & ~0b11) | PIXEL_TRANSFER;
 			scanline_rendered = false;
 		}
 		break;
@@ -150,8 +150,9 @@ void PPU::tick()
 
 					color_index = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
 					if (color_index) {
-						u8 palette_color = (obp0 >> (color_index << 1)) & 0x03;
-						scanline_ptr[x]  = PALETTE_COLORS[palette_color];
+						u8 palette_color =
+						    (((sprite.attr & 1 << 4) ? obp1 : obp0) >> (color_index << 1)) & 0x03;
+						scanline_ptr[x] = PALETTE_COLORS[palette_color];
 					}
 				}
 			}
@@ -161,7 +162,10 @@ void PPU::tick()
 
 		if (cycles >= 172) {
 			cycles = 0;
-			mode   = HBLANK;
+			stat   = (stat & ~0b11) | HBLANK;
+			if (stat & STAT::MODE0) {
+				gb.getCPU().requestInterrupt(CPU::Interrupt::LCD);
+			}
 		}
 
 		break;
@@ -171,11 +175,28 @@ void PPU::tick()
 			cycles = 0;
 			ly++;
 
+			if (ly == lyc) {
+				stat |= 1 << 2;
+				if (stat & STAT::LYC) {
+					gb.getCPU().requestInterrupt(CPU::Interrupt::LCD);
+				}
+			}
+
+			else {
+				stat &= ~(1 << 2);
+			}
+
 			if (ly >= SCREEN_HEIGHT) {
 				gb.getCPU().requestInterrupt(CPU::Interrupt::VBLANK);
-				mode = VBLANK;
+				stat = (stat & ~0b11) | VBLANK;
+				if (stat & STAT::MODE1) {
+					gb.getCPU().requestInterrupt(CPU::Interrupt::LCD);
+				}
 			} else {
-				mode = OAM_SEARCH;
+				stat = (stat & ~0b11) | OAM_SEARCH;
+				if (stat & STAT::MODE2) {
+					gb.getCPU().requestInterrupt(CPU::Interrupt::LCD);
+				}
 			}
 		}
 		break;
@@ -187,7 +208,7 @@ void PPU::tick()
 
 			if (ly >= 154) {
 				ly   = 0;
-				mode = OAM_SEARCH;
+				stat = (stat & ~0b11) | OAM_SEARCH;
 			}
 		}
 		break;
@@ -250,7 +271,7 @@ void PPU::write_byte(u16 address, u8 value)
 			lcdc = value;
 			break;
 		case 0xff41:
-			stat = value;
+			stat = value & 0x78;
 			break;
 		case 0xff42:
 			scy = value;
