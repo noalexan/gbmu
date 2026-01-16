@@ -58,10 +58,10 @@ void GameBoy::pollEvents()
 				case SDL_SCANCODE_E:
 					joypad.press(Joypad::Input::START);
 					break;
-				case SDL_SCANCODE_L:
+				case SDL_SCANCODE_SEMICOLON:
 					joypad.press(Joypad::Input::A);
 					break;
-				case SDL_SCANCODE_SEMICOLON:
+				case SDL_SCANCODE_L:
 					joypad.press(Joypad::Input::B);
 					break;
 				case SDL_SCANCODE_SPACE:
@@ -91,10 +91,10 @@ void GameBoy::pollEvents()
 				case SDL_SCANCODE_E:
 					joypad.release(Joypad::Input::START);
 					break;
-				case SDL_SCANCODE_L:
+				case SDL_SCANCODE_SEMICOLON:
 					joypad.release(Joypad::Input::A);
 					break;
-				case SDL_SCANCODE_SEMICOLON:
+				case SDL_SCANCODE_L:
 					joypad.release(Joypad::Input::B);
 					break;
 				case SDL_SCANCODE_SPACE:
