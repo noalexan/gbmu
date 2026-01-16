@@ -1,16 +1,16 @@
 #include "Timer.hpp"
 #include "../GameBoy.hpp"
 
-Timer::Timer(GameBoy &gb) : gameboy(gb)
+Timer::Timer(GameBoy &_gb) : gb(_gb)
 {
-	gameboy.getMMU().register_handler_range(
-	    0xff04, 0xff07, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
+	gb.getMMU().register_handler_range(
+	    0xff04, 0xff07, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
 }
 
 Timer::~Timer() {}
 
-u8 Timer::read(u16 address)
+u8 Timer::read_byte(u16 address)
 {
 	switch (address) {
 	case 0xff04:
@@ -26,7 +26,7 @@ u8 Timer::read(u16 address)
 	}
 }
 
-void Timer::write(u16 address, u8 value)
+void Timer::write_byte(u16 address, u8 value)
 {
 	switch (address) {
 	case 0xff04:
@@ -68,7 +68,7 @@ void Timer::tick()
 		if (++timer_counter >= threshold) {
 			timer_counter = 0;
 			if (++tima == 0) {
-				gameboy.getCPU().requestInterrupt(CPU::Interrupt::TIMER);
+				gb.getCPU().requestInterrupt(CPU::Interrupt::TIMER);
 				tima = tma;
 			}
 		}

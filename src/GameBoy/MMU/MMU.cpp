@@ -4,17 +4,17 @@
 #include <iomanip>
 #include <iostream>
 
-MMU::MMU(GameBoy &gb) : gameboy(gb)
+MMU::MMU(GameBoy &_gb) : gb(_gb)
 {
 	read_handlers.fill(nullptr);
 	write_handlers.fill(nullptr);
 
 	register_handler_range(
-	    0x0000, 0x7fff, [this](u16 addr) { return gameboy.getCartridge().read(addr); },
-	    [this](u16 addr, u8 value) { gameboy.getCartridge().write(addr, value); });
+	    0x0000, 0x7fff, [this](u16 addr) { return gb.getCartridge().read_byte(addr); },
+	    [this](u16 addr, u8 value) { gb.getCartridge().write_byte(addr, value); });
 	register_handler_range(
-	    0xa000, 0xbfff, [this](u16 addr) { return gameboy.getCartridge().read(addr); },
-	    [this](u16 addr, u8 value) { gameboy.getCartridge().write(addr, value); });
+	    0xa000, 0xbfff, [this](u16 addr) { return gb.getCartridge().read_byte(addr); },
+	    [this](u16 addr, u8 value) { gb.getCartridge().write_byte(addr, value); });
 	register_handler_range(
 	    0xc000, 0xcfff, [this](u16 addr) { return wram[addr - 0xc000]; },
 	    [this](u16 addr, u8 value) { wram[addr - 0xc000] = value; });
@@ -39,7 +39,7 @@ MMU::MMU(GameBoy &gb) : gameboy(gb)
 
 MMU::~MMU() {}
 
-u8 MMU::read(u16 address)
+u8 MMU::read_byte(u16 address)
 {
 	if (address < 0x100 && bios_disabled == 0)
 		return dmg_bios[address];
@@ -51,7 +51,7 @@ u8 MMU::read(u16 address)
 	return 0xff;
 }
 
-void MMU::write(u16 address, u8 value)
+void MMU::write_byte(u16 address, u8 value)
 {
 	if (write_handlers[address]) {
 		write_handlers[address](address, value);

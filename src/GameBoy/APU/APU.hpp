@@ -7,7 +7,7 @@ class GameBoy;
 
 class APU {
 private:
-	GameBoy          &gameboy;
+	GameBoy          &gb;
 	SDL_AudioDeviceID audio_device;
 
 	static void       audioCallback(void *userdata, u8 *stream, int len);
@@ -113,8 +113,8 @@ public:
 	APU(GameBoy &);
 	virtual ~APU();
 
-	u8   read(u16 address);
-	void write(u16 address, u8 value);
+	u8   read_byte(u16 address);
+	void write_byte(u16 address, u8 value);
 
 	u8   wave_pattern[0x10];
 };

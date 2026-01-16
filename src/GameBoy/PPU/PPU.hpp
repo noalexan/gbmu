@@ -68,8 +68,8 @@ public:
 	void                   tick();
 	void                   render();
 
-	u8                     read(u16 address);
-	void                   write(u16 address, u8 value);
+	u8                     read_byte(u16 address);
+	void                   write_byte(u16 address, u8 value);
 
 	SDL_Window            *getWindow() const { return window; }
 	SDL_Renderer          *getRenderer() const { return renderer; }

@@ -5,7 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 
-CPU::CPU(GameBoy &gb) : gameboy(gb), registers{}
+CPU::CPU(GameBoy &_gb) : gb(_gb), registers{}
 {
 	registers.af           = 0x01B0;
 	registers.bc           = 0x0013;
@@ -20,26 +20,26 @@ CPU::CPU(GameBoy &gb) : gameboy(gb), registers{}
 	enable_interrupt_delay = false;
 	halted                 = false;
 
-	gameboy.getMMU().register_handler(
+	gb.getMMU().register_handler(
 	    0xff0f, [this](u16) { return readIO(0xff0f); },
 	    [this](u16, u8 value) { writeIO(0xff0f, value); });
-	gameboy.getMMU().register_handler(
+	gb.getMMU().register_handler(
 	    0xffff, [this](u16) { return readIO(0xffff); },
 	    [this](u16, u8 value) { writeIO(0xffff, value); });
 }
 
 CPU::~CPU() {}
 
-u8 CPU::read(u16 address)
+u8 CPU::read_byte(u16 address)
 {
 	ticks += TICKS_PER_CYLCES;
-	return gameboy.getMMU().read(address);
+	return gb.getMMU().read_byte(address);
 }
 
-void CPU::write(u16 address, u8 value)
+void CPU::write_byte(u16 address, u8 value)
 {
 	ticks += TICKS_PER_CYLCES;
-	gameboy.getMMU().write(address, value);
+	gb.getMMU().write_byte(address, value);
 }
 
 void CPU::tick()
@@ -121,8 +121,8 @@ void CPU::tick()
 	// ld [imm16], sp
 	case 0x08: {
 		u16 address = imm16();
-		write(address, registers.sp & 0x00FF);
-		write(address + 1, (registers.sp & 0xFF00) >> 8);
+		write_byte(address, registers.sp & 0x00FF);
+		write_byte(address + 1, (registers.sp & 0xFF00) >> 8);
 		break;
 	}
 
@@ -1111,32 +1111,32 @@ void CPU::tick()
 
 	// ldh [c], a
 	case 0xE2:
-		write(0xFF00 + registers.c, registers.a);
+		write_byte(0xFF00 + registers.c, registers.a);
 		break;
 
 	// ldh [imm8], a
 	case 0xE0:
-		write(0xFF00 + imm8(), registers.a);
+		write_byte(0xFF00 + imm8(), registers.a);
 		break;
 
 	// ld [imm16], a
 	case 0xEA:
-		write(imm16(), registers.a);
+		write_byte(imm16(), registers.a);
 		break;
 
 	// ldh a, [c]
 	case 0xF2:
-		registers.a = read(0xFF00 + registers.c);
+		registers.a = read_byte(0xFF00 + registers.c);
 		break;
 
 	// ldh a, [imm8]
 	case 0xF0:
-		registers.a = read(0xFF00 + imm8());
+		registers.a = read_byte(0xFF00 + imm8());
 		break;
 
 	// ld a, [imm16]
 	case 0xFA:
-		registers.a = read(imm16());
+		registers.a = read_byte(imm16());
 		break;
 
 	// add sp, imm8

@@ -19,14 +19,14 @@ PPU::PPU(GameBoy &_gb) : gb(_gb)
 	                             SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	gb.getMMU().register_handler_range(
-	    0x8000, 0x9fff, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
+	    0x8000, 0x9fff, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
 	gb.getMMU().register_handler_range(
-	    0xfe00, 0xfe9f, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
+	    0xfe00, 0xfe9f, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
 	gb.getMMU().register_handler_range(
-	    0xff40, 0xff4b, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
+	    0xff40, 0xff4b, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
 
 	sprites = std::span<struct Sprite>(reinterpret_cast<struct Sprite *>(oam.data()), 0x28);
 }
@@ -45,7 +45,7 @@ void PPU::perform_dma()
 {
 	u16 base = static_cast<u16>(dma) << 8;
 	for (u8 &i : oam)
-		i = gb.getMMU().read(base++);
+		i = gb.getMMU().read_byte(base++);
 }
 
 inline u16 PPU::compute_tile_address(u8 tile_index)
@@ -201,7 +201,7 @@ void PPU::render()
 	SDL_RenderPresent(renderer);
 }
 
-u8 PPU::read(u16 address)
+u8 PPU::read_byte(u16 address)
 {
 	if (address >= 0x8000 && address <= 0x9fff) {
 		return vram[address - 0x8000];
@@ -238,7 +238,7 @@ u8 PPU::read(u16 address)
 	return 0xff;
 }
 
-void PPU::write(u16 address, u8 value)
+void PPU::write_byte(u16 address, u8 value)
 {
 	if (address >= 0x8000 && address <= 0x9fff) {
 		vram[address - 0x8000] = value;

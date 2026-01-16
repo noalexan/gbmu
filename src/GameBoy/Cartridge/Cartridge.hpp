@@ -34,6 +34,6 @@ public:
 	u8         *getRomData();
 	const u8   *getRomData() const;
 
-	u8          read(u16 address);
-	void        write(u16 address, u8 value);
+	u8          read_byte(u16 address);
+	void        write_byte(u16 address, u8 value);
 };

@@ -14,7 +14,7 @@ public:
 	using WriteHandler = std::function<void(u16, u8)>;
 
 private:
-	GameBoy                          &gameboy;
+	GameBoy                          &gb;
 
 	std::array<ReadHandler, 0x10000>  read_handlers;
 	std::array<WriteHandler, 0x10000> write_handlers;
@@ -29,8 +29,8 @@ public:
 	MMU(GameBoy &);
 	virtual ~MMU();
 
-	u8   read(u16 address);
-	void write(u16 address, u8 value);
+	u8   read_byte(u16 address);
+	void write_byte(u16 address, u8 value);
 
 	void register_handler(u16 address, ReadHandler read_handler, WriteHandler write_handler);
 	void register_handler_range(u16 start, u16 end, ReadHandler read_handler,

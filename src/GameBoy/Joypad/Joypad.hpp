@@ -7,7 +7,7 @@ class GameBoy;
 
 class Joypad {
 private:
-	GameBoy &gameboy;
+	GameBoy &gb;
 
 	enum P1 { BUTTONS = 1 << 5, DPAD = 1 << 4 };
 
@@ -26,8 +26,8 @@ public:
 	Joypad(GameBoy &);
 	virtual ~Joypad();
 
-	u8   read(u16 address);
-	void write(u16 address, u8 value);
+	u8   read_byte(u16 address);
+	void write_byte(u16 address, u8 value);
 
 	enum Input { START, SELECT, B, A, DOWN, UP, LEFT, RIGHT };
 

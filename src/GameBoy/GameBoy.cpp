@@ -12,7 +12,6 @@ GameBoy::GameBoy(const std::string &filename)
     : cartridge(filename), mmu(*this), apu(*this), ppu(*this), cpu(*this), serial(*this),
       timer(*this), joypad(*this)
 {
-	// Print cartridge info
 	std::cerr << "\033[1;33m" << cartridge.getTitle() << "\033[0m" << std::endl
 	          << "  Type: " << cartridge.getCartridgeTypeString() << std::endl
 	          << "  ROM Size: 0x" << std::hex << std::setw(2) << std::setfill('0')

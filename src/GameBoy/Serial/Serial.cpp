@@ -2,16 +2,16 @@
 #include "../GameBoy.hpp"
 #include <iostream>
 
-Serial::Serial(GameBoy &gb) : gameboy(gb)
+Serial::Serial(GameBoy &_gb) : gb(_gb)
 {
-	gameboy.getMMU().register_handler_range(
-	    0xff01, 0xff02, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
+	gb.getMMU().register_handler_range(
+	    0xff01, 0xff02, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
 }
 
 Serial::~Serial() {}
 
-u8 Serial::read(u16 address)
+u8 Serial::read_byte(u16 address)
 {
 	switch (address) {
 	case 0xff01:
@@ -23,7 +23,7 @@ u8 Serial::read(u16 address)
 	}
 }
 
-void Serial::write(u16 address, u8 value)
+void Serial::write_byte(u16 address, u8 value)
 {
 	switch (address) {
 	case 0xff01:
@@ -34,7 +34,7 @@ void Serial::write(u16 address, u8 value)
 		if (value == 0x81) {
 			std::cout << static_cast<char>(serial_data);
 			serial_control = 0x01;
-			gameboy.getCPU().requestInterrupt(CPU::Interrupt::SERIAL);
+			gb.getCPU().requestInterrupt(CPU::Interrupt::SERIAL);
 		}
 		break;
 	}

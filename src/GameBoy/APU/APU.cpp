@@ -140,7 +140,7 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 	}
 }
 
-APU::APU(GameBoy &gb) : gameboy(gb)
+APU::APU(GameBoy &_gb) : gb(_gb)
 {
 	SDL_Init(SDL_INIT_AUDIO);
 
@@ -159,12 +159,12 @@ APU::APU(GameBoy &gb) : gameboy(gb)
 		SDL_PauseAudioDevice(audio_device, 0);
 	}
 
-	gameboy.getMMU().register_handler_range(
-	    0xff10, 0xff26, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
-	gameboy.getMMU().register_handler_range(
-	    0xff30, 0xff3f, [this](u16 addr) { return read(addr); },
-	    [this](u16 addr, u8 value) { write(addr, value); });
+	gb.getMMU().register_handler_range(
+	    0xff10, 0xff26, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
+	gb.getMMU().register_handler_range(
+	    0xff30, 0xff3f, [this](u16 addr) { return read_byte(addr); },
+	    [this](u16 addr, u8 value) { write_byte(addr, value); });
 }
 
 APU::~APU()
@@ -174,7 +174,7 @@ APU::~APU()
 	}
 }
 
-u8 APU::read(u16 address)
+u8 APU::read_byte(u16 address)
 {
 	if (address >= 0xff10 && address <= 0xff26) {
 		switch (address) {
@@ -229,7 +229,7 @@ u8 APU::read(u16 address)
 	return 0xff;
 }
 
-void APU::write(u16 address, u8 value)
+void APU::write_byte(u16 address, u8 value)
 {
 	if (address >= 0xff10 && address <= 0xff26) {
 		switch (address) {

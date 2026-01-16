@@ -1,16 +1,16 @@
 #include "Joypad.hpp"
 #include "../GameBoy.hpp"
 
-Joypad::Joypad(GameBoy &gb) : gameboy(gb)
+Joypad::Joypad(GameBoy &_gb) : gb(_gb)
 {
-	gameboy.getMMU().register_handler(
-	    0xff00, [this](u16) { return read(0xff00); },
-	    [this](u16, u8 value) { write(0xff00, value); });
+	gb.getMMU().register_handler(
+	    0xff00, [this](u16) { return read_byte(0xff00); },
+	    [this](u16, u8 value) { write_byte(0xff00, value); });
 }
 
 Joypad::~Joypad() {}
 
-u8 Joypad::read(u16 address)
+u8 Joypad::read_byte(u16 address)
 {
 	u8 result = p1 & 0x30;
 
@@ -25,7 +25,7 @@ u8 Joypad::read(u16 address)
 	return result | 0xC0;
 }
 
-void Joypad::write(u16 address, u8 value) { p1 = (value & 0x30) | (p1 & 0xCF); }
+void Joypad::write_byte(u16 address, u8 value) { p1 = (value & 0x30) | (p1 & 0xCF); }
 
 void Joypad::press(enum Input input)
 {
@@ -56,7 +56,7 @@ void Joypad::press(enum Input input)
 		break;
 	}
 
-	gameboy.getCPU().requestInterrupt(CPU::Interrupt::JOYPAD);
+	gb.getCPU().requestInterrupt(CPU::Interrupt::JOYPAD);
 }
 
 void Joypad::release(enum Input input)

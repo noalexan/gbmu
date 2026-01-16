@@ -9,7 +9,7 @@ class GameBoy;
 
 class CPU {
 private:
-	GameBoy &gameboy;
+	GameBoy &gb;
 	int      ticks                  = 0;
 
 	u8       interrupt_flags        = 0;
@@ -42,10 +42,10 @@ private:
 		u16 pc;
 	} registers;
 
-	u8          read(u16 address);
-	void        write(u16 address, u8 value);
+	u8          read_byte(u16 address);
+	void        write_byte(u16 address, u8 value);
 
-	inline u8   imm8() { return read(registers.pc++); }
+	inline u8   imm8() { return read_byte(registers.pc++); }
 	inline u16  imm16() { return imm8() | (imm8() << 8); }
 
 	inline void set_r16(u16 &r16, u16 address)
@@ -70,7 +70,7 @@ private:
 		case 0b101:
 			return registers.l;
 		case 0b110:
-			return read(registers.hl);
+			return read_byte(registers.hl);
 		default:
 			return registers.a;
 		}
@@ -98,7 +98,7 @@ private:
 			registers.l = value;
 			break;
 		case 0b110:
-			write(registers.hl, value);
+			write_byte(registers.hl, value);
 			break;
 		default:
 			registers.a = value;
@@ -124,13 +124,13 @@ private:
 	{
 		switch (code & 0b11) {
 		case 0b00:
-			return read(registers.bc);
+			return read_byte(registers.bc);
 		case 0b01:
-			return read(registers.de);
+			return read_byte(registers.de);
 		case 0b10:
-			return read(registers.hl++);
+			return read_byte(registers.hl++);
 		default:
-			return read(registers.hl--);
+			return read_byte(registers.hl--);
 		}
 	}
 
@@ -138,16 +138,16 @@ private:
 	{
 		switch (code & 0b11) {
 		case 0b00:
-			write(registers.bc, value);
+			write_byte(registers.bc, value);
 			break;
 		case 0b01:
-			write(registers.de, value);
+			write_byte(registers.de, value);
 			break;
 		case 0b10:
-			write(registers.hl++, value);
+			write_byte(registers.hl++, value);
 			break;
 		default:
-			write(registers.hl--, value);
+			write_byte(registers.hl--, value);
 			break;
 		}
 	}
@@ -182,9 +182,9 @@ private:
 
 	inline u8   b3(u8 value) { return (1 << (value & 0b111)); }
 
-	inline void push(u8 value) { write(--registers.sp, value); }
+	inline void push(u8 value) { write_byte(--registers.sp, value); }
 
-	inline u8   pop() { return read(registers.sp++); }
+	inline u8   pop() { return read_byte(registers.sp++); }
 
 	inline bool getZeroFlag() const { return registers.f & ZERO; }
 	inline bool getNegativeFlag() const { return registers.f & NEGATIVE; }

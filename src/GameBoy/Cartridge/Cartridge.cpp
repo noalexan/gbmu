@@ -1,8 +1,8 @@
 #include "Cartridge.hpp"
-#include <errno.h>
+#include <cerrno>
+#include <cstring>
 #include <fcntl.h>
 #include <iostream>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <types.h>
@@ -340,7 +340,7 @@ const u8 *Cartridge::getRomData() const { return rom_data; }
 
 size_t    Cartridge::getRomDataSize() const { return rom_size; }
 
-u8        Cartridge::read(u16 address)
+u8        Cartridge::read_byte(u16 address)
 {
 	if (address <= 0x3fff) {
 		return rom_data[address];
@@ -360,7 +360,7 @@ u8        Cartridge::read(u16 address)
 	return 0xff;
 }
 
-void Cartridge::write(u16 address, u8 value)
+void Cartridge::write_byte(u16 address, u8 value)
 {
 	u8 mbc_type = getCartridgeType();
 
