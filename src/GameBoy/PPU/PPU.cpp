@@ -126,35 +126,38 @@ void PPU::tick()
 				u8 palette_color = (bgp >> (color_index << 1)) & 0x03;
 				scanline_ptr[x]  = PALETTE_COLORS[palette_color];
 
-				for (const struct Sprite &sprite : sprites) {
-					u8 sprite_y = ly + 16 - sprite.y;
-					u8 sprite_x = x + 8 - sprite.x;
+				auto sprite = sprites.end();
+				do {
+					sprite--;
+
+					u8 sprite_y = ly + 16 - sprite->y;
+					u8 sprite_x = x + 8 - sprite->x;
 
 					if (((sprite_y | sprite_x) & (obj_long_mode ? 0xF0 : 0xF8)) ||
-					    (sprite.attr & 0x80 && color_index))
+					    (sprite->attr & 0x80 && color_index))
 						continue;
 
 					u16 tile_address;
 					if (obj_long_mode) {
-						tile_address  = (sprite.index & 0xFE) * 16;
-						tile_address += ((sprite.attr & 0x40) ? (15 - sprite_y) : sprite_y) * 2;
+						tile_address  = (sprite->index & 0xFE) * 16;
+						tile_address += ((sprite->attr & 0x40) ? (15 - sprite_y) : sprite_y) * 2;
 					} else {
-						tile_address  = sprite.index * 16;
-						tile_address += ((sprite.attr & 0x40) ? (7 - sprite_y) : sprite_y) * 2;
+						tile_address  = sprite->index * 16;
+						tile_address += ((sprite->attr & 0x40) ? (7 - sprite_y) : sprite_y) * 2;
 					}
 
 					u8 byte1    = vram[tile_address];
 					u8 byte2    = vram[tile_address + 1];
 
-					u8 bit      = (sprite.attr & 0x20) ? sprite_x : (7 - sprite_x);
+					u8 bit      = (sprite->attr & 0x20) ? sprite_x : (7 - sprite_x);
 
 					color_index = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
 					if (color_index) {
 						u8 palette_color =
-						    (((sprite.attr & 1 << 4) ? obp1 : obp0) >> (color_index << 1)) & 0x03;
+						    (((sprite->attr & 1 << 4) ? obp1 : obp0) >> (color_index << 1)) & 0x03;
 						scanline_ptr[x] = PALETTE_COLORS[palette_color];
 					}
-				}
+				} while (sprite != sprites.begin());
 			}
 
 			scanline_rendered = true;
