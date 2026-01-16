@@ -68,6 +68,9 @@ void GameBoy::pollEvents()
 				case SDL_SCANCODE_SPACE:
 					speedup = true;
 					break;
+				case SDL_SCANCODE_LALT:
+					ppu.rotate_palette();
+					break;
 				default:
 					break;
 				}

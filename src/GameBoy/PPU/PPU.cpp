@@ -1,8 +1,50 @@
 #include "PPU.hpp"
 #include "../GameBoy.hpp"
 #include <string>
+#include <iostream>
 
-static const u32 PALETTE_COLORS[4] = {0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF};
+static const u32 PALETTE_COLORS[][4] = {
+	{0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF},
+
+	{0xEFDBB2FF, 0xA7997DFF, 0x605847FF, 0x181612FF},
+
+	// DMG Classic (greens)
+	{ 0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF },
+
+	// Pocket (clean grayscale)
+	{ 0xF8F8F8FF, 0xA8A8A8FF, 0x505050FF, 0x101010FF },
+
+	// Ice Blue (cold LCD)
+	{ 0xEAF6FFFF, 0xA7D8FFFF, 0x2F6FA3FF, 0x0B1F33FF },
+
+	// Amber CRT (classic monitor)
+	{ 0xFFF4D6FF, 0xFFC46BFF, 0xC46A00FF, 0x3A1C00FF },
+
+	// Sepia (aged paper)
+	{ 0xF3E9D2FF, 0xD6C19BFF, 0x8B6F47FF, 0x2B1E12FF },
+
+	// Purple Night (moody neon)
+	{ 0xF2E9FFFF, 0xBFA6FFFF, 0x5A2E9CFF, 0x1B062FFF },
+
+	// Cotton Candy (pastel pop)
+	{ 0xFFF1F7FF, 0xFFB3D9FF, 0x8AD7FFFF, 0x2E4B73FF },
+
+	// Ocean Deep (blue-green)
+	{ 0xD8FFF6FF, 0x6FE7D1FF, 0x178F86FF, 0x053B3AFF },
+
+	// Forest Hike (earthy greens)
+	{ 0xE8F4D9FF, 0x9CCB6BFF, 0x3E7A3BFF, 0x162A19FF },
+
+	// Desert Sand (warm muted)
+	{ 0xFFF2D5FF, 0xE6C38FFF, 0xB07B3FFF, 0x3D2412FF },
+
+	// Lava (high contrast red/orange)
+	{ 0xFFE6E0FF, 0xFF7A3DFF, 0xB31212FF, 0x240008FF },
+
+	// Matrix (mono green glow)
+	{ 0xD7FFD7FF, 0x6CFF6CFF, 0x00A800FF, 0x002300FF },
+};
+
 
 PPU::PPU(GameBoy &_gb) : gb(_gb)
 {
@@ -39,6 +81,11 @@ PPU::~PPU()
 		SDL_DestroyRenderer(renderer);
 	if (window)
 		SDL_DestroyWindow(window);
+}
+
+void PPU::rotate_palette()
+{
+	i = (i + 1) % (sizeof(PALETTE_COLORS) / sizeof(*PALETTE_COLORS));
 }
 
 void PPU::perform_dma()
@@ -124,7 +171,7 @@ void PPU::tick()
 				}
 
 				u8 palette_color = (bgp >> (color_index << 1)) & 0x03;
-				scanline_ptr[x]  = PALETTE_COLORS[palette_color];
+				scanline_ptr[x]  = PALETTE_COLORS[i][palette_color];
 
 				auto sprite = sprites.end();
 				do {
@@ -155,7 +202,7 @@ void PPU::tick()
 					if (color_index) {
 						u8 palette_color =
 						    (((sprite->attr & 1 << 4) ? obp1 : obp0) >> (color_index << 1)) & 0x03;
-						scanline_ptr[x] = PALETTE_COLORS[palette_color];
+						scanline_ptr[x] = PALETTE_COLORS[i][palette_color];
 					}
 				} while (sprite != sprites.begin());
 			}

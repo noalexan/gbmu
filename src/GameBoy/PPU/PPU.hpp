@@ -62,6 +62,8 @@ private:
 
 	void                     perform_dma();
 
+	int i = 8; // my favourite <3
+
 public:
 	PPU(GameBoy &);
 	virtual ~PPU();
@@ -78,4 +80,6 @@ public:
 
 	std::array<u8, 0x2000> vram;
 	std::array<u8, 0xA0>   oam;
+
+	void rotate_palette();
 };
