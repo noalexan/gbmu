@@ -1,7 +1,7 @@
 #include "GameBoy.hpp"
 #include <SDL2/SDL.h>
-#include <SDL_events.h>
-#include <SDL_scancode.h>
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_scancode.h>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -23,7 +23,6 @@ GameBoy::GameBoy(const std::string &filename)
 
 GameBoy::~GameBoy()
 {
-	running = false;
 	if (event_thread.joinable()) {
 		event_thread.join();
 	}
@@ -37,7 +36,7 @@ void GameBoy::pollEvents()
 		if (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT:
-				running = false;
+				stop();
 				break;
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.scancode) {
@@ -111,6 +110,8 @@ void GameBoy::pollEvents()
 		}
 	}
 }
+
+void GameBoy::stop() { running = false; }
 
 void GameBoy::run()
 {

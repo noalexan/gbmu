@@ -37,6 +37,7 @@ public:
 	virtual ~GameBoy();
 
 	void       run();
+	void       stop();
 
 	APU       &getAPU() { return apu; }
 	PPU       &getPPU() { return ppu; }
