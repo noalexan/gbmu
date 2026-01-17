@@ -13,5 +13,6 @@
 		"rrca",
 		"tima",
 		"wram"
-	]
+	],
+	"C_Cpp.default.cppStandard": "c++20"
 }
