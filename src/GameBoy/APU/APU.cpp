@@ -4,7 +4,7 @@
 
 void APU::audioCallback(void *userdata, u8 *stream, int len)
 {
-	APU         *apu                  = static_cast<APU *>(userdata);
+	APU         *apu                  = reinterpret_cast<APU *>(userdata);
 
 	static float ch1_phase            = 0.0f;
 	static int   ch1_length_counter   = 0;
@@ -14,11 +14,15 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 	static u16   ch1_shadow_frequency = 0;
 	static bool  ch1_sweep_enabled    = false;
 
+	static float ch2_phase            = 0.0f;
+	static int   ch2_length_counter   = 0;
+	static int   ch2_envelope_counter = 0;
+	static int   ch2_envelope_volume  = 0;
+
 	SDL_memset(stream, 0, len);
 
-	if (!(apu->nr52 & AUDIO_ENABLE)) {
+	if (!(apu->nr52 & AUDIO_ENABLE))
 		return;
-	}
 
 	s16               *samples        = reinterpret_cast<s16 *>(stream);
 	int                count          = len / sizeof(s16) / 2;
@@ -31,31 +35,27 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 	const int          SAMPLES_PER_FRAME_STEP = 44100 / 512;
 
 	if (apu->nr14 & TRIGGER) {
-		ch1_phase  = 0.0f;
-		apu->nr52 |= CHANNEL_1_ON;
-		apu->nr14 &= ~TRIGGER;
+		ch1_phase             = 0.0f;
+		apu->nr52            |= CHANNEL_1_ON;
+		apu->nr14            &= ~TRIGGER;
 
-		if (apu->nr14 & LENGTH_ENABLE) {
-			int length_load    = apu->nr11 & LENGTH_TIMER_MASK;
-			ch1_length_counter = (64 - length_load) * (44100 / 256);
-		} else {
-			ch1_length_counter = 0;
-		}
+		ch1_length_counter    = (apu->nr14 & LENGTH_ENABLE)
+		                            ? (64 - (apu->nr11 & LENGTH_TIMER_MASK)) * (44100 / 256)
+		                            : 0;
 
-		ch1_envelope_volume  = (apu->nr12 & INITIAL_VOLUME) >> 4;
-		int envelope_period  = apu->nr12 & ENVELOPE_PERIOD;
-		ch1_envelope_counter = envelope_period * (44100 / 64);
+		ch1_envelope_volume   = (apu->nr12 & INITIAL_VOLUME) >> 4;
+		int envelope_period   = apu->nr12 & ENVELOPE_PERIOD;
+		ch1_envelope_counter  = envelope_period * (44100 / 64);
 
-		u16 period           = ((apu->nr14 & PERIOD_HIGH_MASK) << 8) | apu->nr13;
-		ch1_shadow_frequency = period;
-		int sweep_period     = (apu->nr10 & SWEEP_TIME_MASK) >> 4;
-		int sweep_shift      = apu->nr10 & SWEEP_SHIFT;
-		ch1_sweep_counter    = sweep_period * SAMPLES_PER_FRAME_STEP;
-		ch1_sweep_enabled    = (sweep_period != 0 || sweep_shift != 0);
+		u16 period            = ((apu->nr14 & PERIOD_HIGH_MASK) << 8) | apu->nr13;
+		ch1_shadow_frequency  = period;
+		int sweep_period      = (apu->nr10 & SWEEP_TIME_MASK) >> 4;
+		int sweep_shift       = apu->nr10 & SWEEP_SHIFT;
+		ch1_sweep_counter     = sweep_period * SAMPLES_PER_FRAME_STEP;
+		ch1_sweep_enabled     = (sweep_period != 0 || sweep_shift != 0);
 
-		if ((apu->nr12 & 0xF8) == 0) {
+		if ((apu->nr12 & 0xF8) == 0)
 			apu->nr52 &= ~CHANNEL_1_ON;
-		}
 	}
 
 	if (apu->nr52 & CHANNEL_1_ON) {
@@ -69,59 +69,43 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 		int   sweep_shift     = apu->nr10 & SWEEP_SHIFT;
 
 		for (int i = 0; i < count; i++) {
-			if ((apu->nr14 & LENGTH_ENABLE) && ch1_length_counter > 0) {
-				ch1_length_counter--;
-				if (ch1_length_counter <= 0) {
+			if ((apu->nr14 & LENGTH_ENABLE) && ch1_length_counter > 0 &&
+			    --ch1_length_counter <= 0) {
+				apu->nr52 &= ~CHANNEL_1_ON;
+				break;
+			}
+
+			if (envelope_period != 0 && ch1_envelope_counter > 0 && --ch1_envelope_counter <= 0) {
+				ch1_envelope_volume  += (apu->nr12 & ENVELOPE_DIRECTION)
+				                            ? (ch1_envelope_volume < 15)
+				                            : -(ch1_envelope_volume > 0);
+				ch1_envelope_counter  = envelope_period * (44100 / 64);
+			}
+
+			if (ch1_sweep_enabled && sweep_period != 0 && ch1_sweep_counter > 0 &&
+			    --ch1_sweep_counter <= 0) {
+				u16 new_period;
+				u16 delta = ch1_shadow_frequency >> sweep_shift;
+
+				new_period =
+				    ch1_shadow_frequency + ((apu->nr10 & SWEEP_DIRECTION) ? -delta : delta);
+
+				if (new_period > 2047) {
 					apu->nr52 &= ~CHANNEL_1_ON;
 					break;
 				}
-			}
 
-			if (envelope_period != 0 && ch1_envelope_counter > 0) {
-				ch1_envelope_counter--;
-				if (ch1_envelope_counter <= 0) {
-					if (apu->nr12 & ENVELOPE_DIRECTION) {
-						if (ch1_envelope_volume < 15) {
-							ch1_envelope_volume++;
-						}
-					} else {
-						if (ch1_envelope_volume > 0) {
-							ch1_envelope_volume--;
-						}
-					}
-					ch1_envelope_counter = envelope_period * (44100 / 64);
+				if (sweep_shift != 0) {
+					ch1_shadow_frequency = new_period;
+					apu->nr13            = new_period & 0xFF;
+					apu->nr14            = (apu->nr14 & 0xF8) | ((new_period >> 8) & 0x07);
+
+					period               = new_period;
+					frequency            = 131072.0f / (float)(2048 - period);
+					period_samples       = 44100.0f / frequency;
 				}
-			}
 
-			if (ch1_sweep_enabled && sweep_period != 0 && ch1_sweep_counter > 0) {
-				ch1_sweep_counter--;
-				if (ch1_sweep_counter <= 0) {
-					u16 new_period;
-					u16 delta = ch1_shadow_frequency >> sweep_shift;
-
-					if (apu->nr10 & SWEEP_DIRECTION) {
-						new_period = ch1_shadow_frequency - delta;
-					} else {
-						new_period = ch1_shadow_frequency + delta;
-					}
-
-					if (new_period > 2047) {
-						apu->nr52 &= ~CHANNEL_1_ON;
-						break;
-					}
-
-					if (sweep_shift != 0) {
-						ch1_shadow_frequency = new_period;
-						apu->nr13            = new_period & 0xFF;
-						apu->nr14            = (apu->nr14 & 0xF8) | ((new_period >> 8) & 0x07);
-
-						period               = new_period;
-						frequency            = 131072.0f / (float)(2048 - period);
-						period_samples       = 44100.0f / frequency;
-					}
-
-					ch1_sweep_counter = sweep_period * SAMPLES_PER_FRAME_STEP;
-				}
+				ch1_sweep_counter = sweep_period * SAMPLES_PER_FRAME_STEP;
 			}
 
 			float volume = (float)ch1_envelope_volume / 15.0f;
@@ -136,6 +120,62 @@ void APU::audioCallback(void *userdata, u8 *stream, int len)
 			ch1_phase += 1.0f / period_samples;
 			if (ch1_phase >= 1.0f)
 				ch1_phase -= 1.0f;
+		}
+	}
+
+	if (apu->nr24 & TRIGGER) {
+		ch2_phase             = 0.0f;
+		apu->nr52            |= CHANNEL_2_ON;
+		apu->nr24            &= ~TRIGGER;
+
+		ch2_length_counter    = (apu->nr24 & LENGTH_ENABLE)
+		                            ? (64 - (apu->nr21 & LENGTH_TIMER_MASK)) * (44100 / 256)
+		                            : 0;
+
+		ch2_envelope_volume   = (apu->nr22 & INITIAL_VOLUME) >> 4;
+		ch2_envelope_counter  = (apu->nr22 & ENVELOPE_PERIOD) * (44100 / 64);
+
+		if ((apu->nr22 & 0xF8) == 0)
+			apu->nr52 &= ~CHANNEL_2_ON;
+	}
+
+	if (apu->nr52 & CHANNEL_2_ON) {
+		u16   period          = ((apu->nr24 & PERIOD_HIGH_MASK) << 8) | apu->nr23;
+		float frequency       = 131072.0f / (float)(2048 - period);
+		float duty_threshold  = DUTY_CYCLES[(apu->nr21 >> 6) & 0x03];
+		float period_samples  = 44100.0f / frequency;
+
+		int   envelope_period = apu->nr22 & ENVELOPE_PERIOD;
+
+		for (int i = 0; i < count; i++) {
+			if ((apu->nr24 & LENGTH_ENABLE) && ch2_length_counter > 0 &&
+			    --ch2_length_counter <= 0) {
+				apu->nr52 &= ~CHANNEL_2_ON;
+				break;
+			}
+
+			if (envelope_period != 0 && ch2_envelope_counter > 0) {
+				ch2_envelope_counter--;
+				if (ch2_envelope_counter <= 0) {
+					ch2_envelope_volume  += (apu->nr22 & ENVELOPE_DIRECTION)
+					                            ? (ch2_envelope_volume < 15)
+					                            : -(ch2_envelope_volume > 0);
+					ch2_envelope_counter  = envelope_period * (44100 / 64);
+				}
+			}
+
+			float volume = (float)ch2_envelope_volume / 15.0f;
+			float wave   = (ch2_phase < duty_threshold) ? 1.0f : -1.0f;
+			s16   sample = (s16)(wave * volume * 4096.0f);
+
+			if (apu->nr51 & CHANNEL_2_LEFT)
+				samples[i * 2] += (s16)(sample * left_volume);
+			if (apu->nr51 & CHANNEL_2_RIGHT)
+				samples[i * 2 + 1] += (s16)(sample * right_volume);
+
+			ch2_phase += 1.0f / period_samples;
+			if (ch2_phase >= 1.0f)
+				ch2_phase -= 1.0f;
 		}
 	}
 }
