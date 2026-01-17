@@ -32,13 +32,13 @@ CPU::~CPU() {}
 
 u8 CPU::read_byte(u16 address)
 {
-	ticks += TICKS_PER_CYLCES;
+	ticks += TICKS_PER_CYCLES;
 	return gb.getMMU().read_byte(address);
 }
 
 void CPU::write_byte(u16 address, u8 value)
 {
-	ticks += TICKS_PER_CYLCES;
+	ticks += TICKS_PER_CYCLES;
 	gb.getMMU().write_byte(address, value);
 }
 
@@ -61,7 +61,7 @@ void CPU::tick()
 				ime              = 0;
 
 				// Interrupt handling takes 5 machine cycles
-				ticks           += TICKS_PER_CYLCES * 2;
+				ticks           += TICKS_PER_CYCLES * 2;
 				push(registers.pc >> 8);
 				push(registers.pc);
 				set_r16(registers.pc, 0x40 + i * 8);

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <types.h>
 
-#define TICKS_PER_CYLCES 4
+#define TICKS_PER_CYCLES 4
 
 class GameBoy;
 
@@ -50,7 +50,7 @@ private:
 
 	inline void set_r16(u16 &r16, u16 address)
 	{
-		ticks += TICKS_PER_CYLCES;
+		ticks += TICKS_PER_CYCLES;
 		r16    = address;
 	}
 

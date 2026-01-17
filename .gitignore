@@ -1,5 +1,7 @@
 callgrind.out.*
 
+saves/
+
 build/
 cmake_build_debug/
 cmake_build_release/
@@ -14,7 +16,6 @@ Makefile
 *.dylib
 
 .DS_Store
-.vscode/
 .idea/
 *.swp
 *.swo

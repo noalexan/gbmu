@@ -62,7 +62,7 @@ private:
 
 	void                     perform_dma();
 
-	int i = 8; // my favourite <3
+	int i = 8; // my favorite <3
 
 public:
 	PPU(GameBoy &);
