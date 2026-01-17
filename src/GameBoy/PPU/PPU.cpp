@@ -136,11 +136,26 @@ void PPU::tick()
 			u8   win_line      = win_y % 8;
 
 			bool obj_long_mode = lcdc & LCDC::OBJ_HEIGHT;
+			bool is_window_on_that_line = lcdc & LCDC::WINDOW_ENABLE && ly >= wy;
+
+			std::vector<struct Sprite *> sprites_on_line;
+			auto sprite = sprites.end();
+
+			do {
+				sprite--;
+
+				u8 sprite_y = ly + 16 - sprite->y;
+
+				if (sprite_y & (obj_long_mode ? 0xF0 : 0xF8))
+					continue;
+
+				sprites_on_line.push_back(sprite.base());
+			} while (sprite != sprites.begin() && sprites_on_line.size() != 10);
 
 			for (u8 x = 0; x < SCREEN_WIDTH; x++) {
 				u8 color_index;
 
-				if (lcdc & LCDC::WINDOW_ENABLE && ly >= wy && x + 7 >= wx) {
+				if (is_window_on_that_line && x + 7 >= wx) {
 					/* Window */
 					u8  win_x        = x + 7 - wx;
 
@@ -173,14 +188,11 @@ void PPU::tick()
 				u8 palette_color = (bgp >> (color_index << 1)) & 0x03;
 				scanline_ptr[x]  = PALETTE_COLORS[i][palette_color];
 
-				auto sprite = sprites.end();
-				do {
-					sprite--;
-
+				for (auto sprite : sprites_on_line) {
 					u8 sprite_y = ly + 16 - sprite->y;
 					u8 sprite_x = x + 8 - sprite->x;
 
-					if (((sprite_y | sprite_x) & (obj_long_mode ? 0xF0 : 0xF8)) ||
+					if ((sprite_x & (obj_long_mode ? 0xF0 : 0xF8)) ||
 					    (sprite->attr & 0x80 && color_index))
 						continue;
 
@@ -204,7 +216,7 @@ void PPU::tick()
 						    (((sprite->attr & 1 << 4) ? obp1 : obp0) >> (color_index << 1)) & 0x03;
 						scanline_ptr[x] = PALETTE_COLORS[i][palette_color];
 					}
-				} while (sprite != sprites.begin());
+				}
 			}
 
 			scanline_rendered = true;
