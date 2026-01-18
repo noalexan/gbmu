@@ -1,7 +1,9 @@
-#include <PPU.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
+#include <GBMU/PPU.hpp>
 #include <iostream>
 #include <string>
+
+using namespace GBMU;
 
 static const u32 PALETTE_COLORS[][4] = {
     {0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF},

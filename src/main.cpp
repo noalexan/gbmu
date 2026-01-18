@@ -1,8 +1,8 @@
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
 
 int main(int argc, char *argv[])
 {
-	GameBoy gb(argv[1]);
+	GBMU::GameBoy gb(argv[1]);
 	gb.run();
 
 	return 0;

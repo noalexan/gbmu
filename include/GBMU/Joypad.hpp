@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <types.h>
 
+namespace GBMU {
+
 class GameBoy;
 
 class Joypad {
@@ -34,3 +36,5 @@ public:
 	void press(enum Input);
 	void release(enum Input);
 };
+
+} // namespace GBMU

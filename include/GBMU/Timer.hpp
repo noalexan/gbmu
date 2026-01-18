@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <types.h>
 
+namespace GBMU {
+
 class GameBoy;
 
 class Timer {
@@ -26,3 +28,5 @@ public:
 	u8   read_byte(u16 address);
 	void write_byte(u16 address, u8 value);
 };
+
+} // namespace GBMU

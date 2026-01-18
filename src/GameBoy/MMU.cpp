@@ -1,8 +1,10 @@
-#include <MMU.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
+#include <GBMU/MMU.hpp>
 #include <bios.h>
 #include <iomanip>
 #include <iostream>
+
+using namespace GBMU;
 
 MMU::MMU(GameBoy &_gb) : gb(_gb)
 {

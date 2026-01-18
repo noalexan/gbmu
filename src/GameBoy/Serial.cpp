@@ -1,6 +1,8 @@
-#include <Serial.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
+#include <GBMU/Serial.hpp>
 #include <iostream>
+
+using namespace GBMU;
 
 Serial::Serial(GameBoy &_gb) : gb(_gb)
 {

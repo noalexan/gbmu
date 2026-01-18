@@ -1,5 +1,7 @@
-#include <Joypad.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
+#include <GBMU/Joypad.hpp>
+
+using namespace GBMU;
 
 Joypad::Joypad(GameBoy &_gb) : gb(_gb)
 {

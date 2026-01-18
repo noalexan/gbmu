@@ -5,6 +5,8 @@
 #include <types.h>
 #include <vector>
 
+namespace GBMU {
+
 class Cartridge {
 private:
 	std::vector<u8>          rom_data;
@@ -46,3 +48,5 @@ public:
 	u8          read_byte(u16 address);
 	void        write_byte(u16 address, u8 value);
 };
+
+} // namespace GBMU

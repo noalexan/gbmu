@@ -1,9 +1,11 @@
-#include <CPU.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/CPU.hpp>
+#include <GBMU/GameBoy.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+
+using namespace GBMU;
 
 CPU::CPU(GameBoy &_gb) : gb(_gb), registers{}
 {

@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <types.h>
 
+namespace GBMU {
+
 class GameBoy;
 
 class Serial {
@@ -22,3 +24,5 @@ public:
 	u8  &getSerialData() { return serial_data; }
 	u8  &getSerialControl() { return serial_control; }
 };
+
+} // namespace GBMU

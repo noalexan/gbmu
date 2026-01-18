@@ -1,4 +1,4 @@
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 #include <thread>
+
+using namespace GBMU;
 
 GameBoy::GameBoy(const std::string &filename)
     : cartridge(filename), mmu(*this), apu(*this), ppu(*this), cpu(*this), serial(*this),

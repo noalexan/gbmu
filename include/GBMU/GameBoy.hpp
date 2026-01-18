@@ -1,18 +1,20 @@
 #pragma once
 
-#include <APU.hpp>
-#include <CPU.hpp>
-#include <Cartridge.hpp>
-#include <Joypad.hpp>
-#include <MMU.hpp>
-#include <PPU.hpp>
-#include <Serial.hpp>
-#include <Timer.hpp>
+#include <GBMU/APU.hpp>
+#include <GBMU/CPU.hpp>
+#include <GBMU/Cartridge.hpp>
+#include <GBMU/Joypad.hpp>
+#include <GBMU/MMU.hpp>
+#include <GBMU/PPU.hpp>
+#include <GBMU/Serial.hpp>
+#include <GBMU/Timer.hpp>
 #include <atomic>
 #include <string>
 #include <thread>
 
 #define EMULATION_SPEED 1
+
+namespace GBMU {
 
 class GameBoy {
 private:
@@ -50,3 +52,5 @@ public:
 	Timer     &getTimer() { return timer; }
 	Joypad    &getJoypad() { return joypad; }
 };
+
+} // namespace GBMU

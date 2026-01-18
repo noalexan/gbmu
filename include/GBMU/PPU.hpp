@@ -9,6 +9,8 @@
 #define SCREEN_HEIGHT 144
 #define WINDOW_SCALE  8
 
+namespace GBMU {
+
 class GameBoy;
 
 class PPU {
@@ -83,3 +85,5 @@ public:
 
 	void                   rotate_palette();
 };
+
+} // namespace GBMU

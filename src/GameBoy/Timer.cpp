@@ -1,5 +1,7 @@
-#include <Timer.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/GameBoy.hpp>
+#include <GBMU/Timer.hpp>
+
+using namespace GBMU;
 
 Timer::Timer(GameBoy &_gb) : gb(_gb)
 {

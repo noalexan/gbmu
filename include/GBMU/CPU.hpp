@@ -5,6 +5,8 @@
 
 #define TICKS_PER_CYCLES 4
 
+namespace GBMU {
+
 class GameBoy;
 
 class CPU {
@@ -232,3 +234,5 @@ public:
 	u8   readIO(u16 address);
 	void writeIO(u16 address, u8 value);
 };
+
+} // namespace GBMU

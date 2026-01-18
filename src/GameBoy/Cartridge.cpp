@@ -1,4 +1,4 @@
-#include <Cartridge.hpp>
+#include <GBMU/Cartridge.hpp>
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
@@ -12,6 +12,8 @@
 #include <sys/stat.h>
 #include <types.h>
 #include <unistd.h>
+
+using namespace GBMU;
 
 const std::string Cartridge::saves_folder_path    = "saves";
 

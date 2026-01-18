@@ -1,10 +1,12 @@
 #pragma once
 
-#include <Cartridge.hpp>
+#include <GBMU/Cartridge.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>
 #include <types.h>
+
+namespace GBMU {
 
 class GameBoy;
 
@@ -36,3 +38,5 @@ public:
 	void register_handler_range(u16 start, u16 end, ReadHandler read_handler,
 	                            WriteHandler write_handler);
 };
+
+} // namespace GBMU

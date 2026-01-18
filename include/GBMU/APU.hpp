@@ -3,6 +3,8 @@
 #include <SDL2/SDL.h>
 #include <types.h>
 
+namespace GBMU {
+
 class GameBoy;
 
 class APU {
@@ -118,3 +120,5 @@ public:
 
 	u8   wave_pattern[0x10];
 };
+
+} // namespace GBMU

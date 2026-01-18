@@ -1,6 +1,8 @@
-#include <APU.hpp>
-#include <GameBoy.hpp>
+#include <GBMU/APU.hpp>
+#include <GBMU/GameBoy.hpp>
 #include <cmath>
+
+using namespace GBMU;
 
 void APU::audioCallback(void *userdata, u8 *stream, int len)
 {
