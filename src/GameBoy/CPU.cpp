@@ -1,5 +1,5 @@
-#include "CPU.hpp"
-#include "../GameBoy.hpp"
+#include <CPU.hpp>
+#include <GameBoy.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>

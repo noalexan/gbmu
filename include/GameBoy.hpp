@@ -1,13 +1,13 @@
 #pragma once
 
-#include "APU/APU.hpp"
-#include "CPU/CPU.hpp"
-#include "Cartridge/Cartridge.hpp"
-#include "Joypad/Joypad.hpp"
-#include "MMU/MMU.hpp"
-#include "PPU/PPU.hpp"
-#include "Serial/Serial.hpp"
-#include "Timer/Timer.hpp"
+#include <APU.hpp>
+#include <CPU.hpp>
+#include <Cartridge.hpp>
+#include <Joypad.hpp>
+#include <MMU.hpp>
+#include <PPU.hpp>
+#include <Serial.hpp>
+#include <Timer.hpp>
 #include <atomic>
 #include <string>
 #include <thread>
@@ -38,6 +38,8 @@ public:
 
 	void       run();
 	void       stop();
+
+	void       compute_frame();
 
 	APU       &getAPU() { return apu; }
 	PPU       &getPPU() { return ppu; }

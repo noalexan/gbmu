@@ -1,5 +1,5 @@
-#include "Serial.hpp"
-#include "../GameBoy.hpp"
+#include <Serial.hpp>
+#include <GameBoy.hpp>
 #include <iostream>
 
 Serial::Serial(GameBoy &_gb) : gb(_gb)

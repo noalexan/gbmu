@@ -1,4 +1,4 @@
-#include "GameBoy/GameBoy.hpp"
+#include <GameBoy.hpp>
 
 int main(int argc, char *argv[])
 {

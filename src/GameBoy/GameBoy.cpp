@@ -1,4 +1,4 @@
-#include "GameBoy.hpp"
+#include <GameBoy.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
@@ -24,9 +24,8 @@ GameBoy::GameBoy(const std::string &filename)
 
 GameBoy::~GameBoy()
 {
-	if (event_thread.joinable()) {
+	if (event_thread.joinable())
 		event_thread.join();
-	}
 	SDL_Quit();
 }
 
@@ -115,7 +114,16 @@ void GameBoy::pollEvents()
 	}
 }
 
-void GameBoy::stop() { running = false; }
+void        GameBoy::stop() { running = false; }
+
+inline void GameBoy::compute_frame()
+{
+	for (int i = 0; i < 70224; i++) {
+		cpu.tick();
+		ppu.tick();
+		timer.tick();
+	}
+}
 
 void GameBoy::run()
 {
@@ -127,11 +135,7 @@ void GameBoy::run()
 	while (running) {
 		auto frame_start = std::chrono::high_resolution_clock::now();
 
-		for (int i = 0; i < 70224; i++) {
-			cpu.tick();
-			ppu.tick();
-			timer.tick();
-		}
+		compute_frame();
 
 		ppu.render();
 

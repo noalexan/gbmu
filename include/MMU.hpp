@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Cartridge/Cartridge.hpp"
+#include <Cartridge.hpp>
 #include <array>
 #include <cstdint>
 #include <functional>

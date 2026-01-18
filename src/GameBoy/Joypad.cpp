@@ -1,5 +1,5 @@
-#include "Joypad.hpp"
-#include "../GameBoy.hpp"
+#include <Joypad.hpp>
+#include <GameBoy.hpp>
 
 Joypad::Joypad(GameBoy &_gb) : gb(_gb)
 {

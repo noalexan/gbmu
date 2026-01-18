@@ -1,5 +1,5 @@
-#include "APU.hpp"
-#include "../GameBoy.hpp"
+#include <APU.hpp>
+#include <GameBoy.hpp>
 #include <cmath>
 
 void APU::audioCallback(void *userdata, u8 *stream, int len)

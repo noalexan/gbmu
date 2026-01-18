@@ -1,5 +1,5 @@
-#include "PPU.hpp"
-#include "../GameBoy.hpp"
+#include <PPU.hpp>
+#include <GameBoy.hpp>
 #include <iostream>
 #include <string>
 

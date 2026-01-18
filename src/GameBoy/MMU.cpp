@@ -1,6 +1,6 @@
-#include "MMU.hpp"
-#include "../GameBoy.hpp"
-#include "bios.h"
+#include <MMU.hpp>
+#include <GameBoy.hpp>
+#include <bios.h>
 #include <iomanip>
 #include <iostream>
 
@@ -44,18 +44,16 @@ u8 MMU::read_byte(u16 address)
 	if (address < 0x100 && bios_disabled == 0)
 		return dmg_bios[address];
 
-	if (read_handlers[address]) {
+	if (read_handlers[address])
 		return read_handlers[address](address);
-	}
 
 	return 0xff;
 }
 
 void MMU::write_byte(u16 address, u8 value)
 {
-	if (write_handlers[address]) {
+	if (write_handlers[address])
 		write_handlers[address](address, value);
-	}
 }
 
 void MMU::register_handler(u16 address, ReadHandler read_handler, WriteHandler write_handler)

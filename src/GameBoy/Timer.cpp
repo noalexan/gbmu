@@ -1,5 +1,5 @@
-#include "Timer.hpp"
-#include "../GameBoy.hpp"
+#include <Timer.hpp>
+#include <GameBoy.hpp>
 
 Timer::Timer(GameBoy &_gb) : gb(_gb)
 {

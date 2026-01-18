@@ -11,17 +11,19 @@ find_package(OpenSSL REQUIRED)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable(emulator 
-	src/main.cpp
+add_library(gbmu STATIC
 	src/GameBoy/GameBoy.cpp
-	src/GameBoy/Cartridge/Cartridge.cpp
-	src/GameBoy/CPU/CPU.cpp
-	src/GameBoy/MMU/MMU.cpp
-	src/GameBoy/PPU/PPU.cpp
-	src/GameBoy/APU/APU.cpp
-	src/GameBoy/Serial/Serial.cpp
-	src/GameBoy/Timer/Timer.cpp
-	src/GameBoy/Joypad/Joypad.cpp
+	src/GameBoy/Cartridge.cpp
+	src/GameBoy/CPU.cpp
+	src/GameBoy/MMU.cpp
+	src/GameBoy/PPU.cpp
+	src/GameBoy/APU.cpp
+	src/GameBoy/Serial.cpp
+	src/GameBoy/Timer.cpp
+	src/GameBoy/Joypad.cpp
 )
 
-target_link_libraries(emulator ${SDL2_LIBRARIES} OpenSSL::Crypto)
+add_executable(emulator src/main.cpp)
+
+target_link_libraries(gbmu ${SDL2_LIBRARIES} OpenSSL::Crypto)
+target_link_libraries(emulator gbmu)
