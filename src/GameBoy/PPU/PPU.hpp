@@ -7,7 +7,7 @@
 
 #define SCREEN_WIDTH  160
 #define SCREEN_HEIGHT 144
-#define WINDOW_SCALE  4
+#define WINDOW_SCALE  8
 
 class GameBoy;
 
@@ -62,7 +62,7 @@ private:
 
 	void                     perform_dma();
 
-	int i = 8; // my favorite <3
+	int                      i = 8; // my favorite <3
 
 public:
 	PPU(GameBoy &);
@@ -81,5 +81,5 @@ public:
 	std::array<u8, 0x2000> vram;
 	std::array<u8, 0xA0>   oam;
 
-	void rotate_palette();
+	void                   rotate_palette();
 };

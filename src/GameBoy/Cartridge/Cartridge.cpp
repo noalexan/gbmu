@@ -2,8 +2,12 @@
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
+#include <iomanip>
 #include <iostream>
+#include <openssl/evp.h>
 #include <openssl/md5.h>
+#include <sstream>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <types.h>
@@ -71,15 +75,11 @@ Cartridge::Cartridge(const std::string &filename)
 	close(fd);
 
 	if ((ram_size = getRamDataSize())) {
-		char digest[16], digest_str[33] = {0};
-		MD5(rom_data.data(), rom_size, reinterpret_cast<u8 *>(digest));
-		for (int i = 0; i < 16; i++)
-			sprintf(digest_str + i * 2, "%.2x", digest[i]);
+		std::cout << "Save file: " << getSaveFilePath() << std::endl;
 
-		std::string save_file_path = saves_folder_path + '/' + digest_str;
-		std::cout << "Save file: " << save_file_path << std::endl;
+		std::filesystem::create_directories(saves_folder_path);
 
-		fd = open(save_file_path.c_str(), O_RDWR | O_CREAT, 0644);
+		fd = open(getSaveFilePath(), O_RDWR | O_CREAT, 0644);
 		if (fd < 0) {
 			throw std::runtime_error(strerror(errno));
 		}
@@ -106,6 +106,29 @@ Cartridge::~Cartridge()
 {
 	if (ram)
 		munmap(ram, ram_size);
+}
+
+const char *Cartridge::getSaveFilePath()
+{
+	if (save_file_path.empty()) {
+		EVP_MD_CTX   *context = EVP_MD_CTX_new();
+		const EVP_MD *md      = EVP_md5();
+		unsigned char md_value[EVP_MAX_MD_SIZE];
+		unsigned int  md_len;
+
+		EVP_DigestInit_ex2(context, md, NULL);
+		EVP_DigestUpdate(context, getRomData(), getRomDataSize());
+		EVP_DigestFinal_ex(context, md_value, &md_len);
+		EVP_MD_CTX_free(context);
+
+		std::stringstream ss;
+		for (unsigned int i = 0; i < md_len; i++)
+			ss << std::hex << std::setw(2) << std::setfill('0') << (int)md_value[i];
+
+		save_file_path = saves_folder_path + '/' + ss.str();
+	}
+
+	return save_file_path.c_str();
 }
 
 std::string Cartridge::getTitle() const

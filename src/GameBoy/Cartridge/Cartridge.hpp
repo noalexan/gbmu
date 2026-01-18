@@ -18,6 +18,7 @@ private:
 	u8                       banking_mode = 0;
 
 	static const std::string saves_folder_path;
+	std::string              save_file_path;
 
 	static const std::string CARTRIDGE_TYPES[256];
 
@@ -33,6 +34,8 @@ public:
 	u8          getLicenseCode() const;
 	u8          getHeaderChecksum() const;
 	u16         getGlobalChecksum() const;
+
+	const char *getSaveFilePath();
 
 	u8         *getRomData();
 	const u8   *getRomData() const;

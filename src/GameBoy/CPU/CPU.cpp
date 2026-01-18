@@ -1179,6 +1179,20 @@ void CPU::tick()
 		enable_interrupt_delay = true;
 		break;
 
+	// No instructions
+	case 0xD3:
+	case 0xDB:
+	case 0xDD:
+	case 0xE3:
+	case 0xE4:
+	case 0xEB:
+	case 0xEC:
+	case 0xED:
+	case 0xF4:
+	case 0xFC:
+	case 0xFD:
+		break;
+
 	default: {
 		std::stringstream ss;
 		ss << "Unknown instruction: 0x" << std::hex << std::setw(2) << std::setfill('0')
